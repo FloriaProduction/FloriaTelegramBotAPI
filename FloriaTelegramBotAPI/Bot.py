@@ -9,7 +9,6 @@ from .Types import DefaultTypes, MethodForms
 from .Handlers import Handlers, Filters
 
 
-
 class Bot:
     def __init__(self, token: str, config: Config = None):
         self._token = token

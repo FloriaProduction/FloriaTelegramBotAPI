@@ -4,6 +4,7 @@ from typing import Any, Optional, Union
 
 from .. import DefaultTypes
 
+
 class SendMessage(BaseModel):
     chat_id: int
     text: str

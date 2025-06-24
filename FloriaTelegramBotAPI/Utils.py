@@ -9,7 +9,6 @@ def RemoveKeys(data: dict[str, any], *keys: str) -> dict[str, any]:
         if key not in keys
     }
 
-
 def ConvertToJson(
     obj: Union[
         dict[str, Any],
@@ -41,7 +40,6 @@ def ConvertToJson(
         return obj
     
     raise RuntimeError('Unsupport type')
-
 
 async def CallFunction(
     func: Callable, 

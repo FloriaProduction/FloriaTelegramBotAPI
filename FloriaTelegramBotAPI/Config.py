@@ -4,6 +4,7 @@ from typing import Optional
 
 from .Enums import ParseMode
 
+
 class Config(BaseModel):
     # polling
     polling_delay: float = 1 / 30

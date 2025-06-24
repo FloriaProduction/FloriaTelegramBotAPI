@@ -1,5 +1,6 @@
 from ..Types import DefaultTypes
 
+
 class HandlerFilter:
     def __init__(self):
         pass
