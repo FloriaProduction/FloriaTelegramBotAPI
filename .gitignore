@@ -1,0 +1,7 @@
+/*
+/*/
+*__pycache__
+
+!/FloriaTelegramBotAPI/
+!.gitignore
+!requirements.txt
