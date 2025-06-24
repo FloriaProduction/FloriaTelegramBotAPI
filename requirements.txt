@@ -1,3 +1,4 @@
 dotenv
 httpx
 pydantic
+setuptools
