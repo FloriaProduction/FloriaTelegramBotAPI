@@ -6,7 +6,7 @@ import logging
 from .Config import Config
 from . import Utils, Exceptions
 from .Types import DefaultTypes, MethodForms
-from .Handlers import Handlers, Filters
+from .Handlers import Handlers, Filters, HandlerContainer
 
 
 class Bot:
@@ -20,7 +20,7 @@ class Bot:
         
         self._update_offset = 0
         
-        self._handlers: list[Handlers.Handler] = []
+        self._handlers: HandlerContainer[Handlers.Handler] = HandlerContainer()
         
         self._logger: Optional[logging.Logger] = None
         
@@ -53,7 +53,7 @@ class Bot:
     
     async def Polling(self):
         await self.Init()
-
+        
         while self.is_enabled:
             response = await self._RequestGet(
                 'getUpdates', 
@@ -77,7 +77,7 @@ class Bot:
                                 self.logger.warning(f'Unknowed Update: "{key}": {data}')
                                 continue
                         
-                        if await Utils.CallHandlers(self._handlers, obj, self):
+                        if await self._handlers(obj, self):
                             break
 
                 except BaseException as ex:
@@ -88,15 +88,8 @@ class Bot:
                 
                 finally:
                     pass
-
-    def _RegisterHandler(self, handler: Handlers.Handler, func: Callable[[], Union[Literal[False], Any]]) -> Callable[[], Union[Literal[False], Any]]:
-        if not inspect.iscoroutinefunction(func):
-            raise ValueError()
         
-        handler.func = func
-        self._handlers.append(handler)
-        
-        return func
+        await self._RequestGet('getUpdates', { 'offset': self._update_offset + 1 })
     
     @overload
     def MessageHandler(
@@ -110,7 +103,7 @@ class Bot:
         **kwargs
     ):
         def wrapper(func):
-            return self._RegisterHandler(Handlers.MessageHandler(*args, **kwargs), func)
+            return self._handlers.RegisterHandler(Handlers.MessageHandler(*args, **kwargs), func)
         return wrapper
     
     @overload
@@ -125,7 +118,7 @@ class Bot:
         **kwargs
     ):
         def wrapper(func):
-            return self._RegisterHandler(Handlers.Handler(*args, **kwargs), func)
+            return self._handlers.RegisterHandler(Handlers.Handler(*args, **kwargs), func)
         return wrapper
     
     def AddHandler(
@@ -133,7 +126,7 @@ class Bot:
         handler: Handlers.Handler
     ):
         def wrapper(func):
-            return self._RegisterHandler(handler, func)
+            return self._handlers.RegisterHandler(handler, func)
         return wrapper
     
     async def _makeRequest(

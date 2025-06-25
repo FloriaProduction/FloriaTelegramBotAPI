@@ -1,4 +1,4 @@
-from typing import Union, Optional, Any, Callable, Type
+from typing import Union, Optional, Any, Callable, Type, Literal
 from pydantic import BaseModel
 import inspect
 import os
@@ -56,7 +56,7 @@ class LazyObject:
     def __call__(self):
         return self.func(*self.args, **self.kwargs)
 
-async def CallFunction(
+async def InvokeFunction(
     func: Callable, 
     *,
     passed_by_name: dict[str, Any] = {}, 
@@ -77,16 +77,22 @@ async def CallFunction(
     
     kwargs: dict[str, Any] = {}
     for key, type in func.__annotations__.items():
+        kwarg_value = None
         if key in passed_by_name:
-            kwargs[key] = passed_by_name[key]
+            kwarg_value = passed_by_name[key]
         
         elif type in passed_by_type_dict:
             value = passed_by_type_dict[type]
-            kwargs[key] = value() if issubclass(value.__class__, LazyObject) else value
+            kwarg_value = value() if issubclass(value.__class__, LazyObject) else value
         
         else:
             raise RuntimeError(f"""\n\tNo passed Name or Type found for field '{key}({type})' of function: \n\t{GetPathToObject(func)}""")
-    
+
+        if kwarg_value is None:
+            raise ValueError()
+        
+        kwargs[key] = kwarg_value
+        
     return await func(**kwargs)
 
 async def CallHandlers(
@@ -98,3 +104,12 @@ async def CallHandlers(
         if await handler(*args, **kwargs):
             return True
     return False
+
+class Validator:
+    @staticmethod
+    def List(type: Type[Any], data: list[Any], subclass: bool = True) -> list[Any]:
+        for item in data:
+            if subclass and not issubclass(item.__class__, type) or not subclass and not isinstance(item, type):
+                raise ValueError()
+        return data
+        

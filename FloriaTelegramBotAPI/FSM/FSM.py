@@ -1,167 +1,85 @@
 import inspect
-from typing import Callable, overload, TypeVar, Optional, Type
+from typing import Callable, overload, TypeVar, Optional, Type, Generic
 from enum import Enum
+from pydantic import BaseModel
 
 from ..Bot import Bot
-from ..Handlers import Handlers, Filters
+from ..Handlers import Handlers, Filters, HandlerContainer
 from ..Types import DefaultTypes
 from .. import Utils
 
 
-class FSMHanlder(Handlers.Handler):
-    def __init__(self, state: Enum, *filters, **kwargs):
-        super().__init__(*filters, **kwargs)
+_TEnum = TypeVar('_TEnum', bound=Enum)
+
+
+class State(Filters.HandlerFilter):
+    def __init__(self, state: _TEnum):
+        super().__init__()
         self.state = state
+    
+    def Check(self, obj, bot, state: _TEnum, **kwargs):
+        return self.state is state
+
+
+class FSMHanlder(Handlers.Handler):
+    def __init__(self, *filters, **kwargs):
+        super().__init__(*filters, **kwargs)
+        
         self.fsm: FSM = None
     
-    def Validate(self, obj, bot, state, **kwargs):
-        return state is self.state and super().Validate(obj, bot, **kwargs)
+    def Validate(self, obj, bot, **kwargs):
+        context = self.fsm.GetContext(self._GetUserFromUpdObj(obj).id)
+        return super().Validate(
+            obj, bot, 
+            state = context.state if context is not None else None,
+            **kwargs
+        )
     
-    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, state, **kwargs):
+    def GetPassedByType(self, obj, bot, **kwargs):
         return super().GetPassedByType(obj, bot, **kwargs) + [
             self.fsm,
-            Utils.LazyObject(UserState, lambda: UserState(self.fsm, obj.from_user.id, state))
+            Utils.LazyObject(FSMContext, lambda: self.fsm.GetContext(self._GetUserFromUpdObj(obj).id))
         ]
 
 class FSMMessageHandler(Handlers.MessageHandler, FSMHanlder): pass
 
-class UserState:
+
+class FSMContext(Generic[_TEnum]):
     def __init__(
         self,
         fsm: 'FSM',
         user_id: int,
-        state: Enum
+        state: _TEnum
     ):
         self._fsm = fsm
         self._user_id = user_id
+        self._state: _TEnum = state
+    
+    def SetState(self, state):
         self._state = state
-    
-    @property
-    def user_id(self) -> int:
-        return self._user_id
-    
-    @property
-    def state(self) -> Enum:
-        return self._state
-    
-    def SetState(self, state: Enum):
-        self._fsm.SetState(self._user_id, state)
-    
-    def ClearState(self):
-        self._fsm.ClearState(self._user_id)
-    
 
-class FSM:
+    @property
+    def state(self):
+        return self._state
+
+
+class FSM(Generic[_TEnum]):
     def __init__(
-        self, 
+        self,
         bot: Bot,
-        states: Type[Enum],
-        cancel_command: str = '/back'
     ):
-        self.bot = bot
-        self.states: Type[Enum] = states
-        
-        self._handlers: list[FSMHanlder] = []
-        self._cancel_handlers: list[Handlers.Handler] = []
-        self._user_states: dict[int, Enum] = {}
-        
-        self.cancel_command = cancel_command
-        
-        self.bot._RegisterHandler(Handlers.Handler(), self.Processing)
+        self.bot: Bot = bot
+        self._users: dict[int, FSMContext[_TEnum]] = {}
+
+    def GetContext(self, user_id: int) -> Optional[FSMContext]:
+        return self._users.get(user_id)
     
-    async def Processing(
-        self, 
-        obj: DefaultTypes.UpdateObject, 
-        bot: Bot, 
-        user: DefaultTypes.User
-    ):
-        if self.GetState(user.id) is None:
-            return False
-        
-        if isinstance(obj, DefaultTypes.Message) and obj.text == self.cancel_command:
-            self.ClearState(user.id)
-            return await Utils.CallHandlers(self._cancel_handlers, obj, bot, state=self.GetState(user.id))
-        
-        return await Utils.CallHandlers(self._handlers, obj, bot, state=self.GetState(user.id))
-    
-    def GetState(self, user_id: int) -> Optional[Enum]:
-        return self._user_states.get(user_id)
-    
-    def SetState(self, user_id: int, state: Enum):
-        if state not in self.states._member_map_.keys():
-            raise ValueError()
-        self._user_states[user_id] = state
-    
-    def ClearState(self, user_id: int):
-        self._user_states.pop(user_id, None)
-    
-    def _RegisterHandler(self, handler: FSMHanlder, func: Callable) -> Callable:
-        if not inspect.iscoroutinefunction(func):
-            raise ValueError()
-        
-        handler.func = func
-        handler.fsm = self
-        self._handlers.append(handler)
-        
-        return func
-    
-    def _RegisterCancelHandler(self, handler: FSMHanlder, func: Callable) -> Callable:
-        if not inspect.iscoroutinefunction(func):
-            raise ValueError()
-        
-        handler.func = func
-        self._cancel_handlers.append(handler)
-        
-        return func
-    
-    @overload
-    def ExitHandler(
-        self,
-        *filters: Handlers.HandlerFilter
-    ): ...
-    
-    def ExitHandler(
-        self,
-        *args,
-        **kwargs
-    ):
-        def wrapper(func):
-            return self._RegisterHandler(
-                Handlers.Handler(
-                    *args, 
-                    **kwargs
-                ), 
-                func
-            )
-        return wrapper
-    
-    @overload
-    def MessageHandler(
-        self,
-        state: Enum,
-        *filters: Handlers.HandlerFilter
-    ): ...
-    
-    def MessageHandler(
-        self,
-        *args,
-        **kwargs
-    ):
-        def wrapper(func):
-            return self._RegisterHandler(
-                FSMMessageHandler(
-                    args[0], 
-                    *args[1:], 
-                    **kwargs
-                ), 
-                func
-            )
-        return wrapper
+    def CreateContext(self, user_id: int, state: _TEnum):
+        self._users[user_id] = FSMContext(self, user_id, state)
     
     @overload
     def Handler(
         self,
-        state: Enum,
         *filters: Handlers.HandlerFilter
     ): ...
     
@@ -171,22 +89,28 @@ class FSM:
         **kwargs
     ):
         def wrapper(func):
-            return self._RegisterHandler(
-                FSMHanlder(
-                    args[0], 
-                    *args[1:], 
-                    **kwargs
-                ), 
-                func
+            return self.bot._handlers.RegisterHandler(
+                FSMHanlder(*args, **kwargs), func, 
+                fsm=self
             )
         return wrapper
-    
-    def AddCancelHandler(
+
+    @overload
+    def MessageHandler(
         self,
-        handler: Handlers.Handler
+        *filters: Handlers.HandlerFilter
+    ): ...
+    
+    def MessageHandler(
+        self,
+        *args,
+        **kwargs
     ):
         def wrapper(func):
-            return self._RegisterCancelHandler(handler, func)
+            return self.bot._handlers.RegisterHandler(
+                FSMMessageHandler(*args, **kwargs), func, 
+                fsm=self
+            )
         return wrapper
     
     def AddHandler(
@@ -194,8 +118,5 @@ class FSM:
         handler: FSMHanlder
     ):
         def wrapper(func):
-            return self._RegisterHandler(handler, func)
+            return self.bot._handlers.RegisterHandler(handler, func)
         return wrapper
-
-        
-    

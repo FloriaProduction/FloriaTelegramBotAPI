@@ -11,13 +11,13 @@ class Handler:
         *filters: HandlerFilter,
         **kwargs: dict[str, Any]
     ):
-        self.func = Callable[[], Union[Literal[False], Any]]
-        self.args = filters
+        self.func: Callable[[], Union[Literal[False], Any]] = None
+        self.args = Utils.Validator.List(HandlerFilter, filters)
         self.kwargs = kwargs
     
     def Validate(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
         for filter in self.args:
-            if not filter(obj):
+            if not filter(obj, bot, **kwargs):
                 return False
         return True
     
@@ -37,16 +37,17 @@ class Handler:
     def GetPassedByName(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> dict[str, Any]:
         return {}
 
-    async def Call(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> Any:
-        return await Utils.CallFunction(
-            self.func,
-            passed_by_name=self.GetPassedByName(obj, bot, **kwargs),
-            passed_by_type=self.GetPassedByType(obj, bot, **kwargs)
-        )
+    async def Invoke(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
+        if self.Validate(obj, bot, **kwargs):
+            return await Utils.InvokeFunction(
+                self.func,
+                passed_by_name=self.GetPassedByName(obj, bot, **kwargs),
+                passed_by_type=self.GetPassedByType(obj, bot, **kwargs)
+            ) is not False
+        return False
         
     async def __call__(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        if self.Validate(obj, bot, **kwargs):
-            return await self.Call(obj, bot, **kwargs) is not False
+        return await self.Invoke(obj, bot, **kwargs)
 
 
 class MessageHandler(Handler):
