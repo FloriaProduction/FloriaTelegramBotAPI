@@ -1,5 +1,7 @@
-from typing import Union, Optional, Any, Callable
+from typing import Union, Optional, Any, Callable, Type
 from pydantic import BaseModel
+import inspect
+import os
 
 
 def RemoveKeys(data: dict[str, any], *keys: str) -> dict[str, any]:
@@ -41,16 +43,37 @@ def ConvertToJson(
     
     raise RuntimeError('Unsupport type')
 
+def GetPathToObject(obj: Any):
+    return f'File "{os.path.abspath(inspect.getfile(obj))}", line {inspect.getsourcelines(obj)[1]}'
+
+class LazyObject:
+    def __init__(self, returning_type: Type, func: Callable[[], Any], *args, **kwargs):
+        self.type = returning_type
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+    
+    def __call__(self):
+        return self.func(*self.args, **self.kwargs)
+
 async def CallFunction(
     func: Callable, 
     *,
     passed_by_name: dict[str, Any] = {}, 
     passed_by_type: list[Any] = {}
 ):
-    passed_by_type_dict = {
-        value.__class__: value
-        for value in passed_by_type
-    }
+    passed_by_type_dict = {}
+    for value in passed_by_type:
+        if value is None:
+            continue
+        type = None
+        if issubclass(value.__class__, LazyObject):
+            type = value.type
+        else:
+            type = value.__class__
+        
+        passed_by_type_dict[type] = value
+        
     
     kwargs: dict[str, Any] = {}
     for key, type in func.__annotations__.items():
@@ -58,9 +81,20 @@ async def CallFunction(
             kwargs[key] = passed_by_name[key]
         
         elif type in passed_by_type_dict:
-            kwargs[key] = passed_by_type_dict[type]
+            value = passed_by_type_dict[type]
+            kwargs[key] = value() if issubclass(value.__class__, LazyObject) else value
         
         else:
-            raise RuntimeError(f"No passed Name or Type found for field '{key}({type})'")
+            raise RuntimeError(f"""\n\tNo passed Name or Type found for field '{key}({type})' of function: \n\t{GetPathToObject(func)}""")
     
     return await func(**kwargs)
+
+async def CallHandlers(
+    handlers,
+    *args,
+    **kwargs
+) -> bool:
+    for handler in handlers:
+        if await handler(*args, **kwargs):
+            return True
+    return False

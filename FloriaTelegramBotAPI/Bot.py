@@ -34,7 +34,7 @@ class Bot:
         await self.UpdateMe()
         
         self._logger = logging.getLogger(f'{self._info.username[:self.config.name_max_length]}{'..' if len(self._info.username) > self.config.name_max_length else ''}({self._info.id})')
-
+        
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(self._config.stream_handler_level)
         stream_handler.setFormatter(logging.Formatter(self._config.log_format))
@@ -65,6 +65,8 @@ class Bot:
                 try:
                     self.logger.debug(f'{update=}')
                     
+                    self._update_offset = update.pop('update_id')
+                    
                     for key, data in update.items():
                         obj = None
                         match key:
@@ -72,11 +74,11 @@ class Bot:
                                 obj = DefaultTypes.Message(**data)
                             
                             case _:
+                                self.logger.warning(f'Unknowed Update: "{key}": {data}')
                                 continue
                         
-                        for handler in self._handlers:
-                            if await handler(self, obj):
-                                break
+                        if await Utils.CallHandlers(self._handlers, obj, self):
+                            break
 
                 except BaseException as ex:
                     if False:
@@ -85,9 +87,9 @@ class Bot:
                         self.logger.error(ex.__class__.__name__, exc_info=True)
                 
                 finally:
-                    self._update_offset = max(self._update_offset, update['update_id'])
+                    pass
 
-    def _RegisterHandler(self, handler: Handlers.Handler, func: Callable) -> Callable:
+    def _RegisterHandler(self, handler: Handlers.Handler, func: Callable[[], Union[Literal[False], Any]]) -> Callable[[], Union[Literal[False], Any]]:
         if not inspect.iscoroutinefunction(func):
             raise ValueError()
         
@@ -104,11 +106,11 @@ class Bot:
     
     def MessageHandler(
         self,
-        *filters,
+        *args,
         **kwargs
     ):
         def wrapper(func):
-            return self._RegisterHandler(Handlers.MessageHandler(*filters, **kwargs), func)
+            return self._RegisterHandler(Handlers.MessageHandler(*args, **kwargs), func)
         return wrapper
     
     @overload
@@ -119,14 +121,14 @@ class Bot:
     
     def Handler(
         self,
-        *filters,
+        *args,
         **kwargs
     ):
         def wrapper(func):
-            return self._RegisterHandler(Handlers.Handler(*filters, **kwargs), func)
+            return self._RegisterHandler(Handlers.Handler(*args, **kwargs), func)
         return wrapper
     
-    def Adh(
+    def AddHandler(
         self, 
         handler: Handlers.Handler
     ):
@@ -153,8 +155,8 @@ class Bot:
                 
                 return response
                 
-            except httpx.ReadTimeout | httpx.ConnectTimeout as ex:
-                self.logger.warning(ex.__class__.__name__, exc_info=True)
+            except:
+                self.logger.warning('', exc_info=True)
             
             finally:
                 current_attempt_count += 1

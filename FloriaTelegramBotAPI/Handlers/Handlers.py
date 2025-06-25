@@ -1,4 +1,4 @@
-from typing import Callable, Union, Literal, Any
+from typing import Callable, Union, Literal, Any, overload
 
 from .Filters import HandlerFilter
 from ..Types import DefaultTypes, EasyTypes
@@ -8,45 +8,52 @@ from .. import Utils
 class Handler:    
     def __init__(
         self,
-        *filters: list[HandlerFilter],
+        *filters: HandlerFilter,
         **kwargs: dict[str, Any]
     ):
         self.func = Callable[[], Union[Literal[False], Any]]
         self.args = filters
         self.kwargs = kwargs
     
-    def Validate(self, bot, obj: DefaultTypes.UpdateObject) -> bool:
+    def Validate(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
         for filter in self.args:
             if not filter(obj):
                 return False
         return True
     
-    def GetPassedByType(self, bot, obj: DefaultTypes.UpdateObject) -> list[Any]:
+    @staticmethod
+    def _GetUserFromUpdObj(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
+        if isinstance(obj, DefaultTypes.Message):
+            return obj.from_user
+        raise ValueError()
+       
+    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> list[Any]:
         return [
             obj,
-            bot
+            bot,
+            Utils.LazyObject(DefaultTypes.User, lambda: self._GetUserFromUpdObj(obj)),
         ]
     
-    def GetPassedByName(self, bot, obj: DefaultTypes.UpdateObject) -> dict[str, Any]:
+    def GetPassedByName(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> dict[str, Any]:
         return {}
-    
-    async def Call(self, bot, obj: DefaultTypes.UpdateObject) -> Any:
+
+    async def Call(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> Any:
         return await Utils.CallFunction(
             self.func,
-            passed_by_name=self.GetPassedByName(bot, obj),
-            passed_by_type=self.GetPassedByType(bot, obj)
+            passed_by_name=self.GetPassedByName(obj, bot, **kwargs),
+            passed_by_type=self.GetPassedByType(obj, bot, **kwargs)
         )
-    
-    async def __call__(self, bot, obj: DefaultTypes.UpdateObject) -> bool:
-        if self.Validate(bot, obj):
-            return await self.Call(bot, obj) is not False
+        
+    async def __call__(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
+        if self.Validate(obj, bot, **kwargs):
+            return await self.Call(obj, bot, **kwargs) is not False
 
 
 class MessageHandler(Handler):
-    def Validate(self, bot, obj: DefaultTypes.UpdateObject) -> bool:
-        return isinstance(obj, DefaultTypes.Message) and super().Validate(bot, obj)
+    def Validate(self, obj: DefaultTypes.UpdateObject, bot, **kwargs):
+        return isinstance(obj, DefaultTypes.Message) and super().Validate(obj, bot, **kwargs)
     
-    def GetPassedByType(self, bot, obj: DefaultTypes.UpdateObject) -> list[Any]:
-        return super().GetPassedByType(bot, obj) + [
-            EasyTypes.Message(bot, obj),
+    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs):
+        return super().GetPassedByType(obj, bot, **kwargs) + [
+            Utils.LazyObject(EasyTypes.Message, lambda: EasyTypes.Message(bot, obj))
         ]
