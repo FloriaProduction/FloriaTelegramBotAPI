@@ -7,7 +7,7 @@ from ... import Enums
 
 
 class SendMessage(BaseModel):
-    chat_id: int
+    chat_id: str | int
     text: str
     reply_parameters: Optional[DefaultTypes.ReplyParameters] = None
     reply_markup: Optional[Union[
@@ -27,9 +27,30 @@ class SendMessage(BaseModel):
     message_effect_id: Optional[str] = None
 
 
-
 class SendChatAction(BaseModel):
     chat_id: str | int
     action: Enums.Action
+    business_connection_id: Optional[str] = None
+    message_thread_id: Optional[int] = None
+
+
+class SendPhoto(BaseModel):
+    chat_id: str | int
+    photo: Optional[str] = None
+    caption: Optional[str] = None
+    parse_mode: Optional[Enums.ParseMode] = None
+    caption_entities: Optional[list[DefaultTypes.MessageEntity]] = None
+    show_caption_above_media: Optional[bool] = None
+    disable_notification: Optional[bool] = None
+    protect_content: Optional[bool] = None
+    allow_paid_broadcast: Optional[bool] = None
+    message_effect_id: Optional[str] = None
+    reply_parameters: Optional[DefaultTypes.ReplyParameters] = None
+    reply_markup: Optional[Union[
+        DefaultTypes.InlineKeyboardMarkup,
+        DefaultTypes.ReplyKeyboardMarkup,
+        DefaultTypes.ReplyKeyboardRemove,
+        DefaultTypes.ForceReply
+    ]] = None
     business_connection_id: Optional[str] = None
     message_thread_id: Optional[int] = None

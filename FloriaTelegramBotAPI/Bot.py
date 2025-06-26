@@ -6,7 +6,8 @@ import logging
 from .Config import Config
 from . import Utils, Exceptions, Enums
 from .Types import DefaultTypes, MethodForms
-from .Handlers import Handlers, Filters, HandlerContainer
+from .Handlers import HandlerContainer, Handler, Filter
+
 
 class Bot:
     def __init__(self, token: str, config: Config = None):
@@ -19,15 +20,17 @@ class Bot:
         
         self._update_offset = 0
         
-        self._handlers: HandlerContainer[Handlers.Handler] = HandlerContainer()
+        self._handlers: HandlerContainer[Handler] = HandlerContainer()
         
         self._logger: Optional[logging.Logger] = None
         
         self._methods: Optional[APIMethods] = None
+        
+        self._middleware: Callable[[DefaultTypes.UpdateObject, Bot], DefaultTypes.UpdateObject | None] = lambda obj, bot: obj
 
 
     async def UpdateMe(self):
-        self._info = DefaultTypes.User(**(await self._RequestGet('getMe')).json()['result'])
+        self._info = DefaultTypes.User(**(await self._RequestGet('getMe'))['result'])
     
     async def Init(self):
         await self.UpdateMe()
@@ -60,7 +63,7 @@ class Bot:
                     'offset': self._update_offset + 1
                 }
             )
-            for update in response.json().get('result', []):
+            for update in response.get('result', []):
                 try:
                     self.logger.debug(f'{update=}')
                     
@@ -76,8 +79,9 @@ class Bot:
                                 self.logger.warning(f'Unknowed Update: "{key}": {data}')
                                 continue
                         
-                        if await self._handlers(obj, self):
-                            break
+                        mdlw_obj = await self._middleware(obj, self)
+                        if mdlw_obj is None or await self._handlers(mdlw_obj, self):
+                            continue
 
                 except BaseException as ex:
                     if False:
@@ -93,7 +97,7 @@ class Bot:
     @overload
     def MessageHandler(
         self,
-        *filters: Handlers.HandlerFilter
+        *filters: Filter
     ): ...
     
     def MessageHandler(
@@ -102,13 +106,14 @@ class Bot:
         **kwargs
     ):
         def wrapper(func):
-            return self._handlers.RegisterHandler(Handlers.MessageHandler(*args, **kwargs), func)
+            from .Handlers.Handlers import MessageHandler
+            return self._handlers.RegisterHandler(MessageHandler(*args, **kwargs), func)
         return wrapper
     
     @overload
     def Handler(
         self,
-        *filters: Handlers.HandlerFilter
+        *filters: Filter
     ): ...
     
     def Handler(
@@ -117,16 +122,27 @@ class Bot:
         **kwargs
     ):
         def wrapper(func):
-            return self._handlers.RegisterHandler(Handlers.Handler(*args, **kwargs), func)
+            return self._handlers.RegisterHandler(Handler(*args, **kwargs), func)
         return wrapper
     
     def AddHandler(
         self, 
-        handler: Handlers.Handler
+        handler: Handler
     ):
         def wrapper(func):
             return self._handlers.RegisterHandler(handler, func)
         return wrapper
+
+    def Middleware(
+        self,
+        func: Callable[[DefaultTypes.UpdateObject, 'Bot'], DefaultTypes.UpdateObject]
+    ):
+        if not inspect.iscoroutinefunction(func):
+            raise ValueError()
+        
+        self._middleware = func
+        
+        return func
     
     async def _makeRequest(
         self, 
@@ -141,11 +157,11 @@ class Bot:
                     url=f'https://api.telegram.org/bot{self._token}/{command}',
                     **kwargs
                 )
+                data: dict = response.json()
                 if not response.is_success:
-                    data: dict = response.json()
                     raise Exception(f'\n\tCode: {data.get('error_code')}\n\tDescription: {data.get('description')}\n\tCommand: {command}\n\tRequest: {response.request.content}')
                 
-                return response
+                return data
                 
             except:
                 self.logger.warning('', exc_info=True)
@@ -170,13 +186,27 @@ class Bot:
     async def _RequestPost(
         self, 
         command: str, 
-        data: Any
+        data: Any,
     ) -> httpx.Response:
         return await self._makeRequest(
             self._client.post, 
             command,
             
             json=Utils.ConvertToJson(data or {}),
+        )
+    
+    async def _RequestPostData(
+        self,
+        command: str,
+        data: Any,
+        files: Any = None
+    ) -> httpx.Response:
+        return await self._makeRequest(
+            self._client.post,
+            command,
+            
+            data=Utils.ConvertToJson(data or {}),
+            files=files
         )
 
     @property
@@ -210,6 +240,10 @@ class APIMethods:
     def __init__(self, bot: 'Bot'):
         self.bot = bot
     
+    @staticmethod
+    def _ResponseToMessage(response) -> DefaultTypes.Message:
+        return DefaultTypes.Message(**response['result'])
+    
     async def SendMessage(
         self,
         chat_id: int,
@@ -231,13 +265,15 @@ class APIMethods:
         allow_paid_broadcast: Optional[bool] = None,
         message_effect_id: Optional[str] = None,
         **kwargs
-    ): 
+    ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
         kwargs.setdefault('parse_mode', self.bot.config.parse_mode)
         
-        await self.bot._RequestPost(
-            'sendMessage',
-            MethodForms.SendMessage(**kwargs)
+        return self._ResponseToMessage(
+            await self.bot._RequestPost(
+                'sendMessage', 
+                MethodForms.SendMessage(**kwargs)
+            )
         )
     
     async def SendChatAction(
@@ -253,3 +289,46 @@ class APIMethods:
             'sendChatAction',
             MethodForms.SendChatAction(**kwargs)
         )
+    
+    async def SendPhoto(
+        self,
+        chat_id: str | int,
+        photo: str | bytes,
+        caption: Optional[str] = None,
+        parse_mode: Optional[Enums.ParseMode] = None,
+        caption_entities: Optional[list[DefaultTypes.MessageEntity]] = None,
+        show_caption_above_media: Optional[bool] = None,
+        disable_notification: Optional[bool] = None,
+        protect_content: Optional[bool] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        message_effect_id: Optional[str] = None,
+        reply_parameters: Optional[DefaultTypes.ReplyParameters] = None,
+        reply_markup: Optional[Union[
+            DefaultTypes.InlineKeyboardMarkup,
+            DefaultTypes.ReplyKeyboardMarkup,
+            DefaultTypes.ReplyKeyboardRemove,
+            DefaultTypes.ForceReply
+        ]] = None,
+        business_connection_id: Optional[str] = None,
+        message_thread_id: Optional[int] = None,
+        **kwargs
+    ) -> DefaultTypes.Message:
+        kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        
+        response = None
+        if isinstance(kwargs['photo'], str):
+            response = await self.bot._RequestPost(
+                'sendPhoto',
+                MethodForms.SendPhoto(**kwargs)
+            ) 
+        else: 
+            photo_bytes = kwargs.pop('photo')
+            response = await self.bot._RequestPostData(
+                'sendPhoto',
+                MethodForms.SendPhoto(**kwargs),
+                {
+                    'photo': photo_bytes
+                }
+            ) 
+        return self._ResponseToMessage(response)
+        

@@ -1,7 +1,8 @@
 import inspect
 from typing import Callable, Union, Literal, Any, TypeVar, Generic
 
-from .Handlers import Handler
+from .BaseHandler import Handler
+
 
 _T = TypeVar('_T', bound=Handler)
 class HandlerContainer(Generic[_T]):

@@ -4,7 +4,7 @@ from enum import Enum
 from pydantic import BaseModel
 
 from ..Bot import Bot
-from ..Handlers import Handlers, Filters, HandlerContainer
+from ..Handlers import HandlerContainer, Handler, Filter, Handlers
 from ..Types import DefaultTypes
 from .. import Utils
 
@@ -12,7 +12,7 @@ from .. import Utils
 _TEnum = TypeVar('_TEnum', bound=Enum)
 
 
-class State(Filters.HandlerFilter):
+class State(Filter):
     def __init__(self, state: Enum):
         super().__init__()
         self.state: Enum = state
@@ -20,7 +20,7 @@ class State(Filters.HandlerFilter):
     def Check(self, obj, bot, state: Enum, **kwargs):
         return self.state is state
 
-class InStates(Filters.HandlerFilter):
+class InStates(Filter):
     def __init__(self, states: Type[Enum]):
         super().__init__()
         self.states: Type[Enum] = states
@@ -28,7 +28,7 @@ class InStates(Filters.HandlerFilter):
     def Check(self, obj, bot, state: Enum, **kwargs):
         return state in self.states._member_map_.values()
 
-class FSMHanlder(Handlers.Handler):
+class FSMHanlder(Handler):
     def __init__(self, *filters, **kwargs):
         super().__init__(*filters, **kwargs)
     
@@ -83,9 +83,9 @@ class FSM:
         self._cancel_command: str = cancel_command
         
         self._handlers: HandlerContainer[FSMHanlder] = HandlerContainer()
-        self._cancel_handlers: HandlerContainer[Handlers.Handler] = HandlerContainer()
+        self._cancel_handlers: HandlerContainer[Handler] = HandlerContainer()
         
-        self.bot._handlers.RegisterHandler(Handlers.Handler(), self._Processing)
+        self.bot._handlers.RegisterHandler(Handler(), self._Processing)
         
     async def _Processing(
         self,
@@ -126,7 +126,7 @@ class FSM:
     @overload
     def Handler(
         self,
-        *filters: Handlers.HandlerFilter
+        *filters: Filter
     ): ...
     
     def Handler(
@@ -141,7 +141,7 @@ class FSM:
     @overload
     def MessageHandler(
         self,
-        *filters: Handlers.HandlerFilter
+        *filters: Filter
     ): ...
     
     def MessageHandler(

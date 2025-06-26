@@ -1,14 +1,9 @@
+from .BaseFilter import Filter
+
 from ..Types import DefaultTypes
 
 
-class HandlerFilter:
-    def Check(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        raise NotImplementedError()
-        
-    def __call__(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        return self.Check(obj, bot, **kwargs)
-
-class IsMessage(HandlerFilter):
+class IsMessage(Filter):
     def Check(self, obj: DefaultTypes.Message, bot, **kwargs) -> bool:
         return isinstance(obj, DefaultTypes.Message)
 
@@ -25,16 +20,16 @@ class Command(IsCommand):
     def Check(self, obj: DefaultTypes.Message, bot, **kwargs):
         return super().Check(obj, bot, **kwargs) and obj.text[1:] == self.command
 
-class Not(HandlerFilter):
-    def __init__(self, filter: HandlerFilter):
+class Not(Filter):
+    def __init__(self, filter: Filter):
         super().__init__()
         self.filter = filter
     
     def Check(self, obj, bot, **kwargs):
         return not self.filter(obj, bot, **kwargs)
 
-class Or(HandlerFilter):
-    def __init__(self, *filters: HandlerFilter):
+class Or(Filter):
+    def __init__(self, *filters: Filter):
         super().__init__()
         self.filters = filters
     
@@ -44,7 +39,7 @@ class Or(HandlerFilter):
                 return True
         return False
 
-class Chat(HandlerFilter):
+class Chat(Filter):
     def __init__(self, type: DefaultTypes.ChatType):
         super().__init__()
         self.type = type
