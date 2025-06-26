@@ -26,12 +26,19 @@ class Handler:
         if isinstance(obj, DefaultTypes.Message):
             return obj.from_user
         raise ValueError()
+    
+    @staticmethod
+    def _GetChatFromUpdObj(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
+        if isinstance(obj, DefaultTypes.Message):
+            return obj.chat
+        raise ValueError()
        
     def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> list[Any]:
         return [
             obj,
             bot,
             Utils.LazyObject(DefaultTypes.User, lambda: self._GetUserFromUpdObj(obj)),
+            Utils.LazyObject(DefaultTypes.Chat, lambda: self._GetChatFromUpdObj(obj)),
         ]
     
     def GetPassedByName(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> dict[str, Any]:

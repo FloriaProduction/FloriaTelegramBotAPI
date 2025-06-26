@@ -12,6 +12,9 @@ class HandlerContainer(Generic[_T]):
         if not inspect.iscoroutinefunction(func):
             raise ValueError()
         
+        if not issubclass(handler.__class__, Handler):
+            raise ValueError()
+        
         handler.func = func
         for key, value in kwargs.items():
             handler.__setattr__(key, value)

@@ -32,3 +32,22 @@ class Not(HandlerFilter):
     
     def Check(self, obj, bot, **kwargs):
         return not self.filter(obj, bot, **kwargs)
+
+class Or(HandlerFilter):
+    def __init__(self, *filters: HandlerFilter):
+        super().__init__()
+        self.filters = filters
+    
+    def Check(self, obj, bot, **kwargs):
+        for filter in self.filters:
+            if filter(obj, bot, **kwargs):
+                return True
+        return False
+
+class Chat(HandlerFilter):
+    def __init__(self, type: DefaultTypes.ChatType):
+        super().__init__()
+        self.type = type
+    
+    def Check(self, obj, bot, **kwargs):
+        return obj.chat.type is self.type

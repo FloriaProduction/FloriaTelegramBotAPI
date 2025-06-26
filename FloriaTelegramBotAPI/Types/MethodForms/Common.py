@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any, Optional, Union
 
 from .. import DefaultTypes
+from ... import Enums
 
 
 class SendMessage(BaseModel):
@@ -25,4 +26,10 @@ class SendMessage(BaseModel):
     allow_paid_broadcast: Optional[bool] = None
     message_effect_id: Optional[str] = None
 
-    
+
+
+class SendChatAction(BaseModel):
+    chat_id: str | int
+    action: Enums.Action
+    business_connection_id: Optional[str] = None
+    message_thread_id: Optional[int] = None

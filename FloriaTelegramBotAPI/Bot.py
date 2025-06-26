@@ -4,10 +4,9 @@ import inspect
 import logging
 
 from .Config import Config
-from . import Utils, Exceptions
+from . import Utils, Exceptions, Enums
 from .Types import DefaultTypes, MethodForms
 from .Handlers import Handlers, Filters, HandlerContainer
-
 
 class Bot:
     def __init__(self, token: str, config: Config = None):
@@ -239,4 +238,18 @@ class APIMethods:
         await self.bot._RequestPost(
             'sendMessage',
             MethodForms.SendMessage(**kwargs)
+        )
+    
+    async def SendChatAction(
+        self,
+        chat_id: str | int,
+        action: Enums.Action,
+        business_connection_id: Optional[str] = None,
+        message_thread_id: Optional[int] = None,
+        **kwargs
+    ):
+        kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        await self.bot._RequestPost(
+            'sendChatAction',
+            MethodForms.SendChatAction(**kwargs)
         )
