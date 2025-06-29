@@ -4,6 +4,6 @@
 
 Содержание:
 
-1. Base
-2. Router
-3. Middleware
+1. [Base](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Base)
+2. [Router](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Router)
+3. [Middleware](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Middleware)
