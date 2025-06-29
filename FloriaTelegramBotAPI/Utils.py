@@ -1,4 +1,4 @@
-from typing import Union, Optional, Any, Callable, Type, Literal
+from typing import Union, Optional, Any, Callable, Type, Literal, get_args, get_origin
 from pydantic import BaseModel
 import inspect
 import os
@@ -35,7 +35,7 @@ def ConvertToJson(
         ]
     
     elif issubclass(obj.__class__, BaseModel):
-        # obj: BaseModel = obj
+        obj: BaseModel = obj
         return obj.model_dump(mode='json', exclude_none=True)
     
     elif obj.__class__ in [str, int, float, bool] or obj in [None]:
@@ -66,32 +66,32 @@ async def InvokeFunction(
     for value in passed_by_type:
         if value is None:
             continue
-        type = None
         if issubclass(value.__class__, LazyObject):
-            type = value.type
+            passed_by_type_dict[value.type] = value
         else:
-            type = value.__class__
+            passed_by_type_dict[value.__class__] = value
         
-        passed_by_type_dict[type] = value
-        
-    
     kwargs: dict[str, Any] = {}
     for key, type in func.__annotations__.items():
-        kwarg_value = None
         if key in passed_by_name:
-            kwarg_value = passed_by_name[key]
+            kwargs[key] = passed_by_name[key]
+            continue
         
-        elif type in passed_by_type_dict:
-            value = passed_by_type_dict[type]
-            kwarg_value = value() if issubclass(value.__class__, LazyObject) else value
+        types_to_try = None
+        if get_origin(type) is Union:
+            types_to_try = get_args(type)
+        else:
+            types_to_try = (type,)
+        
+        for try_type in types_to_try:
+            if try_type not in passed_by_type_dict:
+                continue
+            value = passed_by_type_dict[try_type]
+            kwargs[key] = value() if issubclass(value.__class__, LazyObject) else value
+            break
         
         else:
             raise RuntimeError(f"""\n\tNo passed Name or Type found for field '{key}({type})' of function: \n\t{GetPathToObject(func)}""")
-
-        if kwarg_value is None:
-            raise ValueError()
-        
-        kwargs[key] = kwarg_value
         
     return await func(**kwargs)
 

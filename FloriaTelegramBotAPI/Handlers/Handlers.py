@@ -9,5 +9,14 @@ class MessageHandler(Handler):
     
     def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs):
         return super().GetPassedByType(obj, bot, **kwargs) + [
-            Utils.LazyObject(EasyTypes.Message, lambda: EasyTypes.Message(bot=bot, **dict(obj)))
+            Utils.LazyObject(EasyTypes.Message, lambda: EasyTypes.Message(bot, obj))
+        ]
+
+class CallbackHandler(Handler):
+    def Validate(self, obj, bot, **kwargs):
+        return isinstance(obj, DefaultTypes.CallbackQuery) and super().Validate(obj, bot, **kwargs)
+    
+    def GetPassedByType(self, obj, bot, **kwargs):
+        return super().GetPassedByType(obj, bot, **kwargs) + [
+            obj
         ]

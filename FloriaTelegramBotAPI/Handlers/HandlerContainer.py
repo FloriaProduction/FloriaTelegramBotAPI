@@ -2,13 +2,16 @@ import inspect
 from typing import Callable, Union, Literal, Any, TypeVar, Generic
 
 from .BaseHandler import Handler
+from ..Middleware.BaseMiddleware import BaseMiddleware
+from ..Types import DefaultTypes
 
 
 _T = TypeVar('_T', bound=Handler)
 class HandlerContainer(Generic[_T]):
     def __init__(self):
         self._handlers: list[_T] = []
-        
+        self.middleware: BaseMiddleware = BaseMiddleware()
+    
     def RegisterHandler(self, handler: _T, func: Callable[[], Union[Literal[False], Any]], **kwargs) -> Callable[[], Union[Literal[False], Any]]:
         if not inspect.iscoroutinefunction(func):
             raise ValueError()
@@ -23,11 +26,11 @@ class HandlerContainer(Generic[_T]):
         
         return func
     
-    async def Invoke(self, *args, **kwargs) -> bool:
+    async def Invoke(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
         for handler in self._handlers:
-            if await handler(*args, **kwargs):
+            if await self.middleware(handler, obj, bot, **kwargs):
                 return True
         return False
     
-    async def __call__(self, *args, **kwargs) -> bool:
-        return await self.Invoke(*args, **kwargs)
+    async def __call__(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
+        return await self.Invoke(obj, bot, **kwargs)

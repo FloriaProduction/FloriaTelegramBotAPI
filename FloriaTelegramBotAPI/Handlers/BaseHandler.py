@@ -25,12 +25,16 @@ class Handler:
     def _GetUserFromUpdObj(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
         if isinstance(obj, DefaultTypes.Message):
             return obj.from_user
+        elif isinstance(obj, DefaultTypes.CallbackQuery):
+            return obj.from_user
         raise ValueError()
     
     @staticmethod
     def _GetChatFromUpdObj(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
         if isinstance(obj, DefaultTypes.Message):
             return obj.chat
+        elif isinstance(obj, DefaultTypes.CallbackQuery):
+            return obj.message.chat
         raise ValueError()
        
     def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> list[Any]:

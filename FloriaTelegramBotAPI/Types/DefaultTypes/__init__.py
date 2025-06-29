@@ -7,4 +7,5 @@ from .Common import *
 
 UpdateObject = Union[
     Message,
+    CallbackQuery
 ]

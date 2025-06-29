@@ -1,16 +1,17 @@
-from typing import Union, Iterable, overload, Callable, Optional, Any, Literal
+from typing import Union, Callable, Optional, Any
 import httpx
-import inspect
 import logging
 
 from .Config import Config
 from . import Utils, Exceptions, Enums
 from .Types import DefaultTypes, MethodForms
-from .Handlers import HandlerContainer, Handler, Filter
+from .Router import Router
 
 
-class Bot:
+class Bot(Router):
     def __init__(self, token: str, config: Config = None):
+        super().__init__()
+        
         self._token = token
         self._config = config or Config()
         self._is_enabled = True
@@ -20,20 +21,12 @@ class Bot:
         
         self._update_offset = 0
         
-        self._handlers: HandlerContainer[Handler] = HandlerContainer()
-        
         self._logger: Optional[logging.Logger] = None
         
         self._methods: Optional[APIMethods] = None
         
-        self._middleware: Callable[[DefaultTypes.UpdateObject, Bot], DefaultTypes.UpdateObject | None] = lambda obj, bot: obj
-
-
-    async def UpdateMe(self):
-        self._info = DefaultTypes.User(**(await self._RequestGet('getMe'))['result'])
-    
     async def Init(self):
-        await self.UpdateMe()
+        self._info = DefaultTypes.User(**(await self._RequestGet('getMe'))['result'])
         
         self._logger = logging.getLogger(f'{self._info.username[:self.config.name_max_length]}{'..' if len(self._info.username) > self.config.name_max_length else ''}({self._info.id})')
         
@@ -75,13 +68,14 @@ class Bot:
                             case 'message':
                                 obj = DefaultTypes.Message(**data)
                             
+                            case 'callback_query':
+                                obj = DefaultTypes.CallbackQuery(**data)
+                            
                             case _:
                                 self.logger.warning(f'Unknowed Update: "{key}": {data}')
                                 continue
                         
-                        mdlw_obj = await self._middleware(obj, self)
-                        if mdlw_obj is None or await self._handlers(mdlw_obj, self):
-                            continue
+                        await self.Processing(obj, self)
 
                 except BaseException as ex:
                     if False:
@@ -91,58 +85,6 @@ class Bot:
                 
                 finally:
                     pass
-        
-        await self._RequestGet('getUpdates', { 'offset': self._update_offset + 1 })
-    
-    @overload
-    def MessageHandler(
-        self,
-        *filters: Filter
-    ): ...
-    
-    def MessageHandler(
-        self,
-        *args,
-        **kwargs
-    ):
-        def wrapper(func):
-            from .Handlers.Handlers import MessageHandler
-            return self._handlers.RegisterHandler(MessageHandler(*args, **kwargs), func)
-        return wrapper
-    
-    @overload
-    def Handler(
-        self,
-        *filters: Filter
-    ): ...
-    
-    def Handler(
-        self,
-        *args,
-        **kwargs
-    ):
-        def wrapper(func):
-            return self._handlers.RegisterHandler(Handler(*args, **kwargs), func)
-        return wrapper
-    
-    def AddHandler(
-        self, 
-        handler: Handler
-    ):
-        def wrapper(func):
-            return self._handlers.RegisterHandler(handler, func)
-        return wrapper
-
-    def Middleware(
-        self,
-        func: Callable[[DefaultTypes.UpdateObject, 'Bot'], DefaultTypes.UpdateObject]
-    ):
-        if not inspect.iscoroutinefunction(func):
-            raise ValueError()
-        
-        self._middleware = func
-        
-        return func
     
     async def _makeRequest(
         self, 

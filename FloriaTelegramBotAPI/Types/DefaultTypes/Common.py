@@ -19,29 +19,17 @@ class User(BaseModel):
     can_connect_to_business: Optional[bool] = None
     has_main_web_app: Optional[bool] = None
 
-class ChatType(Enum):
-    private = 'private'
-    group = 'group'
-    supergroup = 'supergroup'
-    channel = 'channel'
-
 class Chat(BaseModel):
     id: int
-    type: ChatType
+    type: Enums.ChatType
     title: Optional[str] = None
     username: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     is_forum: Optional[bool] = None
 
-class MessageOriginType(Enum):
-    user = 'user'
-    hidden_user = 'hidden_user'
-    chat = 'chat'
-    channel = 'channel'
-
 class _MessageOrigin(BaseModel):
-    type: MessageOriginType
+    type: Enums.MessageOriginType
     date: int
 
 class MessageOriginUser(_MessageOrigin):
@@ -123,13 +111,10 @@ class Video(BaseModel):
     mime_type: Optional[str] = None
     file_size: Optional[int] = None
 
-class PaidMediaType(Enum):
-    preview = 'preview'
-    photo = 'photo'
-    video = 'video'
+
 
 class _PaidMedia(BaseModel):
-    type: PaidMediaType
+    type: Enums.PaidMediaType
 
 class PaidMediaPreview(_PaidMedia):
     width: Optional[int] = None
@@ -152,25 +137,14 @@ class PaidMediaInfo(BaseModel):
     star_count: int
     paid_media: list[PaidMedia]
 
-class StickerType(Enum):
-    regular = 'regular'
-    mask = 'mask'
-    custom_emoji = 'custom_emoji'
-
 class File(BaseModel):
     file_id: str
     file_unique_id: str
     file_size: Optional[int] = None
     file_path: Optional[str] = None
 
-class MaskPositionPoint(Enum):
-    forehead = 'forehead'
-    eyes = 'eyes'
-    mouth = 'mouth'
-    chin = 'chin'
-
 class MaskPosition(BaseModel):
-    point: MaskPositionPoint
+    point: Enums.MaskPositionPoint
     x_shift: float
     y_shift: float
     scale: float
@@ -178,7 +152,7 @@ class MaskPosition(BaseModel):
 class Sticker(BaseModel):
     file_id: str
     file_unique_id: str
-    type: StickerType
+    type: Enums.StickerType
     width: int
     height: int
     is_animated: bool
@@ -222,29 +196,8 @@ class Dice(BaseModel):
     emoji: str
     value: int
 
-class MessageEntityType(Enum):
-    mention = 'mention'
-    hashtag = 'hashtag'
-    cashtag = 'cashtag'
-    bot_command = 'bot_command'
-    url = 'url'
-    email = 'email'
-    phone_number = 'phone_number'
-    bold = 'bold'
-    italic = 'italic'
-    underline = 'underline'
-    strikethrough = 'strikethrough'
-    spoiler = 'spoiler'
-    blockquote = 'blockquote'
-    expandable_blockquote = 'expandable_blockquote'
-    code = 'code'
-    pre = 'pre'
-    text_link = 'text_link'
-    text_mention = 'text_mention'
-    custom_emoji = 'custom_emoji'
-
 class MessageEntity(BaseModel):
-    type: MessageEntityType
+    type: Enums.MessageEntityType
     offset: int
     length: int
     url: Optional[str] = None
@@ -448,10 +401,6 @@ class GiftInfo(BaseModel):
     entities: Optional[list[MessageEntity]] = []
     is_private: Optional[bool] = False
 
-class UniqueGiftInfoOrigin(Enum):
-    upgrade = 'upgrade'
-    transfer = 'transfer'
-
 class _UniqueGift(BaseModel):
     name: str 
     rarity_per_mille: int
@@ -481,7 +430,7 @@ class UniqueGift(BaseModel):
 
 class UniqueGiftInfo(BaseModel):
     gift: UniqueGift
-    origin: UniqueGiftInfoOrigin
+    origin: Enums.UniqueGiftInfoOrigin
     owned_gift_id: Optional[str] = None
     transfer_star_count: Optional[int] = None
 
@@ -490,21 +439,6 @@ class WriteAccessAllowed(BaseModel):
     web_app_name: Optional[str] = None
     from_attachment_menu: Optional[bool] = None
 
-class EncryptedPassportElementType(Enum):
-    personal_details = 'personal_details'
-    passport = 'passport'
-    driver_license = 'driver_license'
-    identity_card = 'identity_card'
-    internal_passport = 'internal_passport'
-    address = 'address'
-    utility_bill = 'utility_bill'
-    bank_statement = 'bank_statement'
-    rental_agreement = 'rental_agreement'
-    passport_registration = 'passport_registration'
-    temporary_registration = 'temporary_registration'
-    phone_number = 'phone_number'
-    email = 'email'
-
 class PassportFile(BaseModel):
     file_id: str
     file_unique_id: str
@@ -512,7 +446,7 @@ class PassportFile(BaseModel):
     file_date: int
 
 class EncryptedPassportElement(BaseModel):
-    type: EncryptedPassportElementType
+    type: Enums.EncryptedPassportElementType
     data: Optional[str] = None
     phone_number: Optional[str] = None
     email: Optional[str] = None
@@ -540,22 +474,11 @@ class ProximityAlertTriggered(BaseModel):
 class ChatBoostAdded(BaseModel):
     boost_count: int
 
-class BackgroundTypeFillType(Enum):
-    fill = 'fill'
-    wallpaper = 'wallpaper'
-    pattern = 'pattern'
-    chat_theme = 'chat_theme'
-
 class _BackgroundTypeFill(BaseModel):
-    type: BackgroundTypeFillType
-
-class _BackgroundFillType(Enum):
-    solid = 'solid'
-    gradient = 'gradient'
-    freeform_gradient = 'freeform_gradient'
+    type: Enums.BackgroundTypeFillType
 
 class _BackgroundFill(BaseModel):
-    type: _BackgroundFillType
+    type: Enums.BackgroundFillType
 
 class BackgroundFillSolid(_BackgroundFill):
     color: int
@@ -841,3 +764,13 @@ class ReplyParameters(BaseModel):
     quote_parse_mode: Optional[Enums.ParseMode] = None
     quote_entities: Optional[list[MessageEntity]] = None
     quote_position: Optional[int] = None
+
+class CallbackQuery(BaseModel):
+    id: str
+    chat_instance: str
+    from_user: User = Field(alias='from')
+    message: Optional[MaybeInaccessibleMessage] = None
+    inline_message_id: Optional[str] = None
+    data: Optional[str] = None
+    game_short_name: Optional[str] = None
+

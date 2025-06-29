@@ -1,4 +1,4 @@
-# TelegramBotAPI
+# FloriaTelegramBotAPI
 
 Реализация [TelegramBotAPI](https://core.telegram.org/bots/api) на асинхронном Python
 

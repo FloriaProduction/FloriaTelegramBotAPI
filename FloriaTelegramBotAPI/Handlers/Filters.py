@@ -1,10 +1,11 @@
 from .BaseFilter import Filter
 
 from ..Types import DefaultTypes
+from .. import Enums
 
 
 class IsMessage(Filter):
-    def Check(self, obj: DefaultTypes.Message, bot, **kwargs) -> bool:
+    def Check(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
         return isinstance(obj, DefaultTypes.Message)
 
 class IsCommand(IsMessage):
@@ -19,6 +20,12 @@ class Command(IsCommand):
         
     def Check(self, obj: DefaultTypes.Message, bot, **kwargs):
         return super().Check(obj, bot, **kwargs) and obj.text[1:] == self.command
+
+
+class IsCallback(Filter):
+    def Check(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
+        return isinstance(obj, DefaultTypes.CallbackQuery)
+
 
 class Not(Filter):
     def __init__(self, filter: Filter):
@@ -40,9 +47,13 @@ class Or(Filter):
         return False
 
 class Chat(Filter):
-    def __init__(self, type: DefaultTypes.ChatType):
+    def __init__(self, *types: Enums.ChatType):
         super().__init__()
-        self.type = type
+        self.types = types
     
     def Check(self, obj, bot, **kwargs):
-        return obj.chat.type is self.type
+        if isinstance(obj, DefaultTypes.Message):
+            return obj.chat.type in self.types
+        elif isinstance(obj, DefaultTypes.CallbackQuery):
+            return obj.message.chat.type in self.types
+        raise ValueError()

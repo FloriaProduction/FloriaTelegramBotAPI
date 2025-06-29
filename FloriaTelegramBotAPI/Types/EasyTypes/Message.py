@@ -3,13 +3,12 @@ from pydantic import ConfigDict
 
 from .. import DefaultTypes
 from ... import Utils, Enums
-from ...Bot import Bot
 
 
-class Message(DefaultTypes.Message):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    
-    bot: Bot
+class Message:
+    def __init__(self, bot, message: DefaultTypes.Message):
+        self.bot = bot
+        self.origin = message
     
     async def Send(
         self,
@@ -35,7 +34,7 @@ class Message(DefaultTypes.Message):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
         kwargs.setdefault('chat_id', self.chat.id)
         
-        return Message(bot=self.bot, **dict(await self.bot.methods.SendMessage(**kwargs)))
+        return Message(self.bot, await self.bot.methods.SendMessage(**kwargs))
     
     async def Answer(
         self,
@@ -60,7 +59,7 @@ class Message(DefaultTypes.Message):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
         kwargs.update({
             'reply_parameters': DefaultTypes.ReplyParameters(
-                message_id=self.message_id,
+                message_id=self.id,
                 chat_id=self.chat.id
             )
         })
@@ -92,4 +91,23 @@ class Message(DefaultTypes.Message):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
         kwargs.setdefault('chat_id', self.chat.id)
         
-        return Message(bot=self.bot, **dict(await self.bot.methods.SendPhoto(**kwargs)))
+        return Message(self.bot, await self.bot.methods.SendPhoto(**kwargs))
+    
+    @property
+    def text(self):
+        return self.origin.text
+    
+    @property
+    def chat(self):
+        return self.origin.chat
+    
+    @property
+    def from_user(self):
+        return self.origin.from_user
+    
+    @property
+    def id(self):
+        return self.origin.message_id
+    
+    
+    
