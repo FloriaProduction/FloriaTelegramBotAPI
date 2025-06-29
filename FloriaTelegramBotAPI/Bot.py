@@ -180,7 +180,7 @@ class Bot(Router):
 
 class APIMethods:
     def __init__(self, bot: 'Bot'):
-        self.bot = bot
+        self._bot = bot
     
     @staticmethod
     def _ResponseToMessage(response) -> DefaultTypes.Message:
@@ -209,10 +209,10 @@ class APIMethods:
         **kwargs
     ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
-        kwargs.setdefault('parse_mode', self.bot.config.parse_mode)
+        kwargs.setdefault('parse_mode', self._bot.config.parse_mode)
         
         return self._ResponseToMessage(
-            await self.bot._RequestPost(
+            await self._bot._RequestPost(
                 'sendMessage', 
                 MethodForms.SendMessage(**kwargs)
             )
@@ -227,7 +227,7 @@ class APIMethods:
         **kwargs
     ):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
-        await self.bot._RequestPost(
+        await self._bot._RequestPost(
             'sendChatAction',
             MethodForms.SendChatAction(**kwargs)
         )
@@ -259,13 +259,13 @@ class APIMethods:
         
         response = None
         if isinstance(kwargs['photo'], str):
-            response = await self.bot._RequestPost(
+            response = await self._bot._RequestPost(
                 'sendPhoto',
                 MethodForms.SendPhoto(**kwargs)
             ) 
         else: 
             photo_bytes = kwargs.pop('photo')
-            response = await self.bot._RequestPostData(
+            response = await self._bot._RequestPostData(
                 'sendPhoto',
                 MethodForms.SendPhoto(**kwargs),
                 {

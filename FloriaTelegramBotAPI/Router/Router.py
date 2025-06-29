@@ -1,22 +1,27 @@
-from typing import overload, Callable
+from typing import overload
 
 from ..Types import DefaultTypes
-from ..Handlers import HandlerContainer, Handler, Handlers, Filter, Filters
+from ..Handlers import HandlerContainer, Handler, Handlers
+from ..Filters.BaseFilter import Filter
+from ..Filters.FilterContainer import FilterContainer
 from ..Middleware import BaseMiddleware
 
 
 class Router:
-    def __init__(self):
-        self._handlers: HandlerContainer[Handler] = HandlerContainer()
+    def __init__(self, *filters: Filter):
+        self._filters: FilterContainer = FilterContainer(*filters)
+        self._handlers: HandlerContainer = HandlerContainer()
         self._routers: set[Router] = set()
     
+    
     async def Processing(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        if await self._handlers.Invoke(obj, bot, **kwargs):
-            return True
-        
-        for router in self._routers:
-            if await router.Processing(obj, bot, **kwargs):
+        if self._filters.Validate(obj, bot, **kwargs):
+            if await self._handlers.Invoke(obj, bot, **kwargs):
                 return True
+            
+            for router in self._routers:
+                if await router.Processing(obj, bot, **kwargs):
+                    return True
             
         return False
             

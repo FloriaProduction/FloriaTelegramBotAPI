@@ -10,7 +10,7 @@ class IsMessage(Filter):
 
 class IsCommand(IsMessage):
     def Check(self, obj: DefaultTypes.Message, bot, **kwargs) -> bool:
-        return super().Check(obj, bot, **kwargs) and len(obj.text) > 0 and obj.text[0] == '/'
+        return super().Check(obj, bot, **kwargs) and obj.text is not None and len(obj.text) > 0 and obj.text[0] == '/'
 
 class Command(IsCommand):
     def __init__(self, command: str):

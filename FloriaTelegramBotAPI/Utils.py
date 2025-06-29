@@ -3,13 +3,25 @@ from pydantic import BaseModel
 import inspect
 import os
 
+from .Types import DefaultTypes
 
-def RemoveKeys(data: dict[str, any], *keys: str) -> dict[str, any]:
+
+def RemoveKeys(data: dict[str, Any], *keys: str) -> dict[str, Any]:
     return {
         key: value 
         for key, value in data.items()
         if key not in keys
     }
+
+def RemoveValues(data: dict[str, Any], *values: Any) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in data.items()
+        if value not in values
+    }
+
+def ToDict(**kwargs: Any) -> dict[str, Any]:
+    return kwargs
 
 def ConvertToJson(
     obj: Union[
@@ -111,5 +123,21 @@ class Validator:
         for item in data:
             if subclass and not issubclass(item.__class__, type) or not subclass and not isinstance(item, type):
                 raise ValueError()
-        return data
+        return [*data]
         
+class Transformator:
+    @staticmethod
+    def GetUser(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
+        if isinstance(obj, DefaultTypes.Message):
+            return obj.from_user
+        elif isinstance(obj, DefaultTypes.CallbackQuery):
+            return obj.from_user
+        raise ValueError()
+    
+    @staticmethod
+    def GetChat(obj: DefaultTypes.UpdateObject) -> DefaultTypes.Chat:
+        if isinstance(obj, DefaultTypes.Message):
+            return obj.chat
+        elif isinstance(obj, DefaultTypes.CallbackQuery):
+            return obj.message.chat
+        raise ValueError()

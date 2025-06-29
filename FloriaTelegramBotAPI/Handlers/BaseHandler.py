@@ -1,6 +1,7 @@
 from typing import Callable, Union, Literal, Any, overload
 
-from .Filters import Filter
+from ..Filters.BaseFilter import Filter
+from ..Filters.FilterContainer import FilterContainer
 from ..Types import DefaultTypes
 from .. import Utils
 
@@ -12,37 +13,18 @@ class Handler:
         **kwargs: dict[str, Any]
     ):
         self.func: Callable[[], Union[Literal[False], Any]] = None
-        self.args = Utils.Validator.List(Filter, filters)
+        self.filters = FilterContainer(*filters)
         self.kwargs = kwargs
     
     def Validate(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        for filter in self.args:
-            if not filter(obj, bot, **kwargs):
-                return False
-        return True
-    
-    @staticmethod
-    def _GetUser(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
-        if isinstance(obj, DefaultTypes.Message):
-            return obj.from_user
-        elif isinstance(obj, DefaultTypes.CallbackQuery):
-            return obj.from_user
-        raise ValueError()
-    
-    @staticmethod
-    def _GetChat(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
-        if isinstance(obj, DefaultTypes.Message):
-            return obj.chat
-        elif isinstance(obj, DefaultTypes.CallbackQuery):
-            return obj.message.chat
-        raise ValueError()
-       
+        return self.filters.Validate(obj, bot, **kwargs)
+
     def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> list[Any]:
         return [
             obj,
             bot,
-            Utils.LazyObject(DefaultTypes.User, lambda: self._GetUser(obj)),
-            Utils.LazyObject(DefaultTypes.Chat, lambda: self._GetChat(obj)),
+            Utils.LazyObject(DefaultTypes.User, lambda: Utils.Transformator.GetUser(obj)),
+            Utils.LazyObject(DefaultTypes.Chat, lambda: Utils.Transformator.GetChat(obj)),
         ]
     
     def GetPassedByName(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> dict[str, Any]:
