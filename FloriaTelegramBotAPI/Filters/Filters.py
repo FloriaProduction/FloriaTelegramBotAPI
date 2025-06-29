@@ -1,3 +1,7 @@
+from typing import Iterable, Any, Type
+from enum import Enum
+import re
+
 from .BaseFilter import Filter
 
 from ..Types import DefaultTypes
@@ -16,10 +20,10 @@ class Command(IsCommand):
     def __init__(self, command: str):
         super().__init__()
         
-        self.command = command
+        self._command = command
         
     def Check(self, obj: DefaultTypes.Message, bot, **kwargs):
-        return super().Check(obj, bot, **kwargs) and obj.text[1:] == self.command
+        return super().Check(obj, bot, **kwargs) and obj.text[1:] == self._command
 
 
 class IsCallback(Filter):
@@ -30,18 +34,18 @@ class IsCallback(Filter):
 class Not(Filter):
     def __init__(self, filter: Filter):
         super().__init__()
-        self.filter = filter
+        self._filter = filter
     
     def Check(self, obj, bot, **kwargs):
-        return not self.filter(obj, bot, **kwargs)
+        return not self._filter(obj, bot, **kwargs)
 
 class Or(Filter):
     def __init__(self, *filters: Filter):
         super().__init__()
-        self.filters = filters
+        self._filters = filters
     
     def Check(self, obj, bot, **kwargs):
-        for filter in self.filters:
+        for filter in self._filters:
             if filter(obj, bot, **kwargs):
                 return True
         return False
@@ -50,11 +54,41 @@ class Or(Filter):
 class Chat(Filter):
     def __init__(self, *types: Enums.ChatType):
         super().__init__()
-        self.types = types
+        self._types = types
     
     def Check(self, obj, bot, **kwargs):
         if isinstance(obj, DefaultTypes.Message):
-            return obj.chat.type in self.types
+            return obj.chat.type in self._types
         elif isinstance(obj, DefaultTypes.CallbackQuery):
-            return obj.message.chat.type in self.types
+            return obj.message.chat.type in self._types
         raise ValueError()
+
+class InSequence(IsMessage):
+    def __init__(self, *items: str, lower: bool = True):
+        super().__init__()
+        self._items = [
+            item.lower()
+            for item in items
+        ] if lower else items
+        self._lower = lower
+    
+    def Check(self, obj, bot, **kwargs):
+        return super().Check(obj, bot, **kwargs) and obj.text is not None and (obj.text.lower() if self._lower else obj.text ) in self._items
+
+class InEnum(InSequence):
+    def __init__(self, *enums: Type[Enum], by_keys: bool = False, lower: bool = True):
+        items = []
+        for enum in enums:
+            items += [
+                key if by_keys else value.value
+                for key, value in enum._member_map_.items()
+            ]
+        super().__init__(*items, lower=lower)
+
+class Regex(IsMessage):
+    def __init__(self, pattern: str):
+        super().__init__()
+        self._pattern: str = pattern
+    
+    def Check(self, obj, bot, **kwargs):
+        return super().Check(obj, bot, **kwargs) and obj.text is not None and re.fullmatch(self._pattern, obj.text) is not None

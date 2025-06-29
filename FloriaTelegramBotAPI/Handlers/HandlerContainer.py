@@ -8,8 +8,8 @@ from ..Types import DefaultTypes
 
 class HandlerContainer:
     def __init__(self):
-        self.handlers: list[Handler] = []
-        self.middleware: BaseMiddleware = BaseMiddleware()
+        self._handlers: list[Handler] = []
+        self._middleware: BaseMiddleware = BaseMiddleware()
     
     def RegisterHandler(self, handler: Handler, func: Callable[[], Union[Literal[False], Any]], **kwargs) -> Callable[[], Union[Literal[False], Any]]:
         if not inspect.iscoroutinefunction(func):
@@ -18,18 +18,26 @@ class HandlerContainer:
         if not issubclass(handler.__class__, Handler):
             raise ValueError()
         
-        handler.func = func
+        handler._func = func
         for key, value in kwargs.items():
             handler.__setattr__(key, value)
-        self.handlers.append(handler)
+        self._handlers.append(handler)
         
         return func
     
     async def Invoke(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        for handler in self.handlers:
-            if await self.middleware(handler, obj, bot, **kwargs):
+        for handler in self._handlers:
+            if await self._middleware(handler, obj, bot, **kwargs):
                 return True
         return False
     
     async def __call__(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
         return await self.Invoke(obj, bot, **kwargs)
+    
+    @property
+    def middleware(self) -> BaseMiddleware:
+        return self._middleware
+    @middleware.setter
+    def middleware(self, value: BaseMiddleware):
+        self._middleware = value
+    

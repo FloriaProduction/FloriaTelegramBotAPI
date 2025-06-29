@@ -13,7 +13,6 @@ class Router:
         self._handlers: HandlerContainer = HandlerContainer()
         self._routers: set[Router] = set()
     
-    
     async def Processing(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
         if self._filters.Validate(obj, bot, **kwargs):
             if await self._handlers.Invoke(obj, bot, **kwargs):
@@ -33,10 +32,10 @@ class Router:
     
     @property
     def middleware(self) -> BaseMiddleware:
-        return self._handlers.middleware
+        return self._handlers._middleware
     @middleware.setter
     def middleware(self, value: BaseMiddleware):
-        self._handlers.middleware = value
+        self._handlers._middleware = value
         
     @overload
     def Callback(
