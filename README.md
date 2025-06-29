@@ -14,7 +14,7 @@ pip install FloriaTelegramBotAPI --upgrade
 
 ## Использование
 
-На данный момент нет примеров использования
+[Примеры использования](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples) находятся в [репозитории проекта](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main)
 
 ## Документация
 
