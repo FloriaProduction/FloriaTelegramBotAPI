@@ -46,6 +46,7 @@ class Or(Filter):
                 return True
         return False
 
+
 class Chat(Filter):
     def __init__(self, *types: Enums.ChatType):
         super().__init__()

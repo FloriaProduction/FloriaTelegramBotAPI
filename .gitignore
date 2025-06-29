@@ -3,6 +3,7 @@
 *__pycache__
 
 !/FloriaTelegramBotAPI/
+!/Examples/
 !.gitignore
 !requirements.txt
 !README.md

@@ -22,7 +22,7 @@ class Handler:
         return True
     
     @staticmethod
-    def _GetUserFromUpdObj(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
+    def _GetUser(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
         if isinstance(obj, DefaultTypes.Message):
             return obj.from_user
         elif isinstance(obj, DefaultTypes.CallbackQuery):
@@ -30,7 +30,7 @@ class Handler:
         raise ValueError()
     
     @staticmethod
-    def _GetChatFromUpdObj(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
+    def _GetChat(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
         if isinstance(obj, DefaultTypes.Message):
             return obj.chat
         elif isinstance(obj, DefaultTypes.CallbackQuery):
@@ -41,8 +41,8 @@ class Handler:
         return [
             obj,
             bot,
-            Utils.LazyObject(DefaultTypes.User, lambda: self._GetUserFromUpdObj(obj)),
-            Utils.LazyObject(DefaultTypes.Chat, lambda: self._GetChatFromUpdObj(obj)),
+            Utils.LazyObject(DefaultTypes.User, lambda: self._GetUser(obj)),
+            Utils.LazyObject(DefaultTypes.Chat, lambda: self._GetChat(obj)),
         ]
     
     def GetPassedByName(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> dict[str, Any]:
