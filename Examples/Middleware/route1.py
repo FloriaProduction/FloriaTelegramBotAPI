@@ -1,7 +1,7 @@
 from FloriaTelegramBotAPI import Router
 from FloriaTelegramBotAPI.Middleware import BaseMiddleware
 from FloriaTelegramBotAPI.Types.EasyTypes import *
-from FloriaTelegramBotAPI.Handlers.Filters import *
+from FloriaTelegramBotAPI.Filters import *
 from FloriaTelegramBotAPI.Enums import ChatType
 
 

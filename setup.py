@@ -6,7 +6,7 @@ def readme():
 
 setup(
     name='FloriaTelegramBotAPI',
-    version='0.1.3',
+    version='0.2.0',
     author='FloriaProduction',
     author_email='FloriaProduction@yandex.ru',
     description='Python Telegram Bot API',
