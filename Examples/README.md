@@ -5,5 +5,7 @@
 Содержание:
 
 1. [Base](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Base)
-2. [Router](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Router)
-3. [Middleware](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Middleware)
+1. [Router](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Router)
+1. [Middleware](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Middleware)
+1. [Keyboard](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/Keyboard)
+1. [FSM](https://github.com/FloriaProduction/FloriaTelegramBotAPI/tree/main/Examples/FSM)
