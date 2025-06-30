@@ -14,18 +14,16 @@ class BaseMiddleware:
         self,
         handler: Handler, 
         obj: DefaultTypes.UpdateObject,
-        bot: Any,
         **kwargs
     ) -> bool:
-        return await handler(obj, bot, **kwargs)
+        return await handler(obj, **kwargs)
     
     async def __call__(
         self, 
         handler: Handler, 
         obj: DefaultTypes.UpdateObject,
-        bot: Any,
         **kwargs
     ) -> bool:
-        if self._filters.Validate(obj, bot):
-            return await self.Invoke(handler, obj, bot, **kwargs)
+        if self._filters.Validate(obj, **kwargs):
+            return await self.Invoke(handler, obj, **kwargs)
         return False

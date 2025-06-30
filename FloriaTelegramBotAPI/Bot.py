@@ -75,7 +75,7 @@ class Bot(Router):
                                 self.logger.warning(f'Unknowed Update: "{key}": {data}')
                                 continue
                         
-                        await self.Processing(obj, self)
+                        await self.Processing(obj, bot=self)
 
                 except BaseException as ex:
                     if False:

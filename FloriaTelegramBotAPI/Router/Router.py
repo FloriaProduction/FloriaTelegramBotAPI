@@ -13,13 +13,13 @@ class Router:
         self._handlers: HandlerContainer = HandlerContainer()
         self._routers: set[Router] = set()
     
-    async def Processing(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        if self._filters.Validate(obj, bot, **kwargs):
-            if await self._handlers.Invoke(obj, bot, **kwargs):
+    async def Processing(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+        if self._filters.Validate(obj, **kwargs):
+            if await self._handlers.Invoke(obj, **kwargs):
                 return True
             
             for router in self._routers:
-                if await router.Processing(obj, bot, **kwargs):
+                if await router.Processing(obj, **kwargs):
                     return True
             
         return False

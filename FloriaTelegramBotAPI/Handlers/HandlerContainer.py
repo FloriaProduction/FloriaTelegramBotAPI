@@ -25,14 +25,14 @@ class HandlerContainer:
         
         return func
     
-    async def Invoke(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
+    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         for handler in self._handlers:
-            if await self._middleware(handler, obj, bot, **kwargs):
+            if await self._middleware(handler, obj, **kwargs):
                 return True
         return False
     
-    async def __call__(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> bool:
-        return await self.Invoke(obj, bot, **kwargs)
+    async def __call__(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+        return await self.Invoke(obj, **kwargs)
     
     @property
     def middleware(self) -> BaseMiddleware:
