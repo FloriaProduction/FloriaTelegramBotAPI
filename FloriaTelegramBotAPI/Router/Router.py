@@ -49,7 +49,7 @@ class Router:
         **kwargs
     ):
         def wrapper(func):
-            return self._handlers.RegisterHandler(Handlers.CallbackHandler(*args, **kwargs), func)
+            return self._handlers.RegisterHandler(func, Handlers.CallbackHandler(*args, **kwargs))
         return wrapper
     
     @overload
@@ -64,7 +64,7 @@ class Router:
         **kwargs
     ):
         def wrapper(func):
-            return self._handlers.RegisterHandler(Handlers.MessageHandler(*args, **kwargs), func)
+            return self._handlers.RegisterHandler(func, Handlers.MessageHandler(*args, **kwargs))
         return wrapper
     
     @overload
@@ -79,7 +79,7 @@ class Router:
         **kwargs
     ):
         def wrapper(func):
-            return self._handlers.RegisterHandler(Handler(*args, **kwargs), func)
+            return self._handlers.RegisterHandler(func, Handler(*args, **kwargs))
         return wrapper
     
     def AddHandler(
@@ -87,7 +87,7 @@ class Router:
         handler: Handlers.Handler
     ):
         def wrapper(func):
-            return self._handlers.RegisterHandler(handler, func)
+            return self._handlers.RegisterHandler(func, handler)
         return wrapper
     
     

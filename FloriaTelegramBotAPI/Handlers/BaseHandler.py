@@ -1,4 +1,4 @@
-from typing import Callable, Union, Literal, Any, overload
+from typing import Callable, Union, Literal, Any, overload, ParamSpecKwargs
 
 from ..Filters.BaseFilter import Filter
 from ..Filters.FilterContainer import FilterContainer
@@ -19,10 +19,10 @@ class Handler:
     def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         return self._filters.Validate(obj, **kwargs)
 
-    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, **kwargs) -> list[Any]:
+    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> list[Any]:
         return [
             obj,
-            kwargs.get('bot'),
+            bot,
             Utils.LazyObject(DefaultTypes.User, lambda: Utils.Transformator.GetUser(obj)),
             Utils.LazyObject(DefaultTypes.Chat, lambda: Utils.Transformator.GetChat(obj)),
         ]
@@ -41,5 +41,3 @@ class Handler:
         
     async def __call__(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         return await self.Invoke(obj, **kwargs)
-
-

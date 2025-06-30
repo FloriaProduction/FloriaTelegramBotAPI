@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, Union, Literal, Any
+from typing import Callable, Union, Literal, Any, Type
 
 from .BaseHandler import Handler
 from ..Middleware.BaseMiddleware import BaseMiddleware
@@ -9,14 +9,18 @@ from ..Types import DefaultTypes
 class HandlerContainer:
     def __init__(self):
         self._handlers: list[Handler] = []
+        self._mixins: list[Type] = []
         self._middleware: BaseMiddleware = BaseMiddleware()
     
-    def RegisterHandler(self, handler: Handler, func: Callable[[], Union[Literal[False], Any]], **kwargs) -> Callable[[], Union[Literal[False], Any]]:
+    def RegisterHandler(self, func: Callable[[], Union[Literal[False], Any]], handler: Handler, *mixins: Type, **kwargs) -> Callable[[], Union[Literal[False], Any]]:
         if not inspect.iscoroutinefunction(func):
             raise ValueError()
         
         if not issubclass(handler.__class__, Handler):
             raise ValueError()
+        
+        for mixin in [*self._mixins, *mixins]:
+            handler.__class__ = type(mixin.__name__, (mixin, handler.__class__), {})
         
         handler._func = func
         for key, value in kwargs.items():
