@@ -19,8 +19,7 @@ class HandlerContainer:
         if not issubclass(handler.__class__, Handler):
             raise ValueError()
         
-        for mixin in [*self._mixins, *mixins]:
-            handler.__class__ = type(mixin.__name__, (mixin, handler.__class__), {})
+        handler.__class__ = type(f'{handler.__class__.__name__}_Mixed', (*self._mixins, *mixins, handler.__class__), {})
         
         handler._func = func
         for key, value in kwargs.items():
