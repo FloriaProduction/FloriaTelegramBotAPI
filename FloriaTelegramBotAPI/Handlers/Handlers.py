@@ -4,8 +4,10 @@ from .. import Utils
 
 
 class MessageHandler(Handler):
-    def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs):
-        return isinstance(obj, DefaultTypes.Message) and super().Validate(obj, **kwargs)
+    """Обработчик текстовых сообщений"""
+
+    async def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs):
+        return isinstance(obj, DefaultTypes.Message) and await super().Validate(obj, **kwargs)
     
     def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs):
         return super().GetPassedByType(obj, **kwargs) + [
@@ -13,8 +15,10 @@ class MessageHandler(Handler):
         ]
 
 class CallbackHandler(Handler):
-    def Validate(self, obj, **kwargs):
-        return isinstance(obj, DefaultTypes.CallbackQuery) and super().Validate(obj, **kwargs)
+    """Обработчик callback-запросов"""
+
+    async def Validate(self, obj, **kwargs):
+        return isinstance(obj, DefaultTypes.CallbackQuery) and await super().Validate(obj, **kwargs)
     
     def GetPassedByType(self, obj, **kwargs):
         return super().GetPassedByType(obj, **kwargs) + [

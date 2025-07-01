@@ -5,7 +5,7 @@ import asyncio
 
 from FloriaTelegramBotAPI import Bot, Router
 
-from . import food
+import food
 
 
 bot = Bot(os.environ['token'])

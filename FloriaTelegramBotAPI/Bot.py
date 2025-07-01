@@ -47,17 +47,14 @@ class Bot(Router):
         
         self._methods = APIMethods(self)
     
-    async def Polling(self):
+    async def Polling(self, *, skip_updates: bool = False):
         await self.Init()
         
+        if skip_updates:
+            await self._GetUpdates()
+        
         while self.is_enabled:
-            response = await self._RequestGet(
-                'getUpdates', 
-                {
-                    'offset': self._update_offset + 1
-                }
-            )
-            for update in response.get('result', []):
+            for update in await self._GetUpdates():
                 try:
                     self.logger.debug(f'{update=}')
                     
@@ -86,6 +83,14 @@ class Bot(Router):
                 
                 finally:
                     pass
+    
+    async def _GetUpdates(self) -> list[dict[str, Any]]:
+        return (await self._RequestGet(
+            'getUpdates', 
+            {
+                'offset': self._update_offset + 1
+            }
+        )).get('result', [])
     
     async def _MakeRequest(
         self, 

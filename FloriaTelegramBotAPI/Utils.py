@@ -5,6 +5,14 @@ import os
 
 
 def RemoveKeys(data: dict[str, Any], *keys: str) -> dict[str, Any]:
+    """Удалить данные из словаря по ключам
+
+    Args:
+        data (dict[str, Any]): Словарь
+
+    Returns:
+        dict[str, Any]: Новый словарь
+    """
     return {
         key: value 
         for key, value in data.items()
@@ -12,6 +20,14 @@ def RemoveKeys(data: dict[str, Any], *keys: str) -> dict[str, Any]:
     }
 
 def RemoveValues(data: dict[str, Any], *values: Any) -> dict[str, Any]:
+    """Удалить данные из словаря по значениям
+
+    Args:
+        data (dict[str, Any]): Словарь
+
+    Returns:
+        dict[str, Any]: Новый словарь
+    """
     return {
         key: value
         for key, value in data.items()
@@ -32,6 +48,18 @@ def ConvertToJson(
     list[Any],
     Any
 ]:
+    """Рекурсивно конвертировать примитивы и pydantic.BaseModel в json-формат
+
+    Args:
+        obj (Union[ dict[str, Any], list[Any], Any ]): Объект для конвертации
+
+    Raises:
+        RuntimeError: Неизвестный тип
+
+    Returns:
+        Union[ dict[str, Any], list[Any], Any ]: Конвертированный объект в json-формате
+    """
+    
     if isinstance(obj, dict):
         return {
             key: ConvertToJson(value)
@@ -53,10 +81,21 @@ def ConvertToJson(
     
     raise RuntimeError('Unsupport type')
 
-def GetPathToObject(obj: Any):
+def GetPathToObject(obj: Any) -> str:
+    """Получить файл и линию объявления объекта
+
+    Args:
+        obj (Any): Объект
+
+    Returns:
+        str: Строчка формата 'File `_path_`, line `_number_`'
+    """
     return f'File "{os.path.abspath(inspect.getfile(obj))}", line {inspect.getsourcelines(obj)[1]}'
 
 class LazyObject:
+    """Класс-обертка ленивого вызова функции-инициализации для работы совместно с `InvokeFunction`
+    """
+    
     def __init__(self, returning_type: Type, func: Callable[[], Any], *args, **kwargs):
         self.type = returning_type
         self.func = func
@@ -70,8 +109,22 @@ async def InvokeFunction(
     func: Callable, 
     *,
     passed_by_name: dict[str, Any] = {}, 
-    passed_by_type: list[Any] = {}
-):
+    passed_by_type: list[Any | LazyObject] = []
+) -> Any:
+    """Вызов функции с передачей параметров по имени и типу
+
+    Args:
+        func (Callable): Сама функция
+        passed_by_name (dict[str, Any]): Словарь для передачи параметров по имени
+        passed_by_type (list[Any | LazyObject]): Словарь для передачи параметров по типу
+        
+    Raises:
+        RuntimeError: Не удалось найти параметра для какого-то либо параметра функции
+
+    Returns:
+        Any: Результат выполнения функции
+    """
+    
     passed_by_type_dict = {}
     for value in passed_by_type:
         if value is None:

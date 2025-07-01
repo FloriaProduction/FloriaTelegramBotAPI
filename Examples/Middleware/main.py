@@ -5,7 +5,7 @@ import asyncio
 
 from FloriaTelegramBotAPI import Bot
 
-from . import route1
+import route1
 
 bot = Bot(os.environ['token'])
 bot.Mount(route1.router)

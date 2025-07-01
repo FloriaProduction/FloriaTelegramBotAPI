@@ -6,14 +6,12 @@ from .Enums import ParseMode
 
 
 class Config(BaseModel):
-    # polling
-    polling_delay: float = 1 / 30
-    wait_polling_delay: float = 1 / 20
-    polling_time: float = 10
+    '''
+    Конфигурация бота
+    '''
     
     # connection
     timeout: float = 5
-    update_limit: int = 100
     retry_count: int = 5
     
     # name
@@ -28,8 +26,5 @@ class Config(BaseModel):
     # parse
     parse_mode: Optional[ParseMode] = None
     
-    # actions
-    auto_actions: bool = True
-
     
         

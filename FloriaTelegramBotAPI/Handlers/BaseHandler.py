@@ -7,6 +7,8 @@ from .. import Extractor, Utils
 
 
 class Handler:    
+    """Базовый класс обработчиков обновлений"""
+
     def __init__(
         self,
         *filters: Filter,
@@ -16,8 +18,8 @@ class Handler:
         self._filters = FilterContainer(*filters)
         self._kwargs = kwargs
     
-    def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
-        return self._filters.Validate(obj, **kwargs)
+    async def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+        return await self._filters.Validate(obj, **kwargs)
 
     def GetPassedByType(self, obj: DefaultTypes.UpdateObject, **kwargs) -> list[Any]:
         return [
@@ -31,7 +33,7 @@ class Handler:
         return {}
 
     async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
-        if self.Validate(obj, **kwargs):
+        if await self.Validate(obj, **kwargs):
             return await Utils.InvokeFunction(
                 self._func,
                 passed_by_name=self.GetPassedByName(obj, **kwargs),

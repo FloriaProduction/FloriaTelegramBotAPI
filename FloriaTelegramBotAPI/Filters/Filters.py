@@ -3,63 +3,77 @@ from enum import Enum
 import re
 
 from .BaseFilter import Filter
+from .FilterContainer import FilterContainer
 
 from ..Types import DefaultTypes
 from .. import Extractor, Enums, Validator
 
 
 class IsMessage(Filter):
-    def Check(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+    """Фильтр для сообщений (Message)"""
+    
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         return isinstance(obj, DefaultTypes.Message)
 
 class IsCommand(IsMessage):
-    def Check(self, obj: DefaultTypes.Message, **kwargs) -> bool:
-        return super().Check(obj, **kwargs) and obj.text is not None and len(obj.text) > 0 and obj.text[0] == '/'
+    """Сообщение является командой (начинается с `/`)"""
+    
+    async def Check(self, obj: DefaultTypes.Message, **kwargs) -> bool:
+        return await super().Check(obj, **kwargs) and obj.text is not None and len(obj.text) > 0 and obj.text[0] == '/'
 
 class Command(IsCommand):
+    """Сообщение содержит конкретную команду"""
+    
     def __init__(self, *commands: str):
         super().__init__()
         
         self._commands = Validator.List(commands, str, subclass=False)
         
-    def Check(self, obj: DefaultTypes.Message, **kwargs):
-        return super().Check(obj, **kwargs) and obj.text[1:] in self._commands
+    async def Check(self, obj: DefaultTypes.Message, **kwargs):
+        return await super().Check(obj, **kwargs) and obj.text[1:] in self._commands
 
 
 class IsCallback(Filter):
-    def Check(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+    """Фильтр для callback-запросов"""
+    
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         return isinstance(obj, DefaultTypes.CallbackQuery)
 
 
 class Not(Filter):
+    """Инвертирует результат фильтра"""
+    
     def __init__(self, filter: Filter):
         super().__init__()
         self._filter = Validator.IsSubClass(filter, Filter)
     
-    def Check(self, obj, **kwargs):
-        return not self._filter(obj, **kwargs)
+    async def Check(self, obj, **kwargs):
+        return not await self._filter(obj, **kwargs)
 
 class Or(Filter):
+    """Проходит если ЛЮБОЙ из фильтров срабатывает"""
+    
     def __init__(self, *filters: Filter):
         super().__init__()
-        self._filters = Validator.List(filters, Filter)
+        
+        self._filters = FilterContainer(*filters)
     
-    def Check(self, obj, **kwargs):
-        for filter in self._filters:
-            if filter(obj, **kwargs):
-                return True
-        return False
-
+    async def Check(self, obj, **kwargs):
+        return await self._filters.Validate(obj, **kwargs)
 
 class Chat(Filter):
+    """Проверяет тип чата"""
+    
     def __init__(self, *types: Enums.ChatType):
         super().__init__()
         self._types = Validator.List(types, Enums.ChatType, subclass=False)
     
-    def Check(self, obj, **kwargs):
+    async def Check(self, obj, **kwargs):
         return Extractor.GetChat(obj).type in self._types
 
 class InSequence(IsMessage):
+    """Текст сообщения входит в список допустимых значений"""
+    
     def __init__(self, *items: str, lower: bool = True):
         super().__init__()
         self._items = [
@@ -68,10 +82,12 @@ class InSequence(IsMessage):
         ] if lower else items
         self._lower = lower
     
-    def Check(self, obj, **kwargs):
-        return super().Check(obj, **kwargs) and obj.text is not None and (obj.text.lower() if self._lower else obj.text ) in self._items
+    async def Check(self, obj, **kwargs):
+        return await super().Check(obj, **kwargs) and obj.text is not None and (obj.text.lower() if self._lower else obj.text ) in self._items
 
 class InEnum(InSequence):
+    """Текст совпадает с ключом или значением enum"""
+    
     def __init__(self, *enums: Type[Enum], by_keys: bool = False, lower: bool = True):
         items = []
         for enum in Validator.List(enums, Type[Enum]):
@@ -82,9 +98,11 @@ class InEnum(InSequence):
         super().__init__(*items, lower=lower)
 
 class Regex(IsMessage):
+    """Текст сообщения соответствует регулярному выражению"""
+    
     def __init__(self, pattern: str):
         super().__init__()
         self._pattern = Validator.IsInstance(pattern, str)
     
-    def Check(self, obj, **kwargs):
-        return super().Check(obj, **kwargs) and obj.text is not None and re.fullmatch(self._pattern, obj.text) is not None
+    async def Check(self, obj, **kwargs):
+        return await super().Check(obj, **kwargs) and obj.text is not None and re.fullmatch(self._pattern, obj.text) is not None

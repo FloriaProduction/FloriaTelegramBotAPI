@@ -1,28 +1,29 @@
-from typing import Any
+from typing import Generic, Optional
 
 from ..Router import Router
 from .. import Extractor
+from ..Storage import Storage, StorageContext, MemoryStorage
 
+from .FSMModel import FSMModel, TFSMModel
 from .FSMContext import FSMContext
 from .FSMHandlerMixin import FSMHandlerMixin
 
-class FSM(Router):
-    def __init__(self, *filters):
+
+class FSM(Router, Generic[TFSMModel]):
+    """Роутер с поддержкой конечного автомата (FSM)"""
+
+    def __init__(self, *filters, storage: Optional[Storage[TFSMModel]] = None):
         super().__init__(*filters)
         self._handlers.mixins = [FSMHandlerMixin]
         
-        self._users: dict[int, Any] = {}
+        self._storage: Storage[TFSMModel] = storage or MemoryStorage(FSMModel())
     
-    def Processing(self, obj, **kwargs):
+    def GetContext(self, user_id: int) -> FSMContext[TFSMModel]:
+        return FSMContext(StorageContext(self._storage, user_id))
+    
+    async def Processing(self, obj, **kwargs):
         user = Extractor.GetUser(obj)
-        context = self.GetOrCreateContext(user.id)
+        context = self.GetContext(user.id)
         
-        return super().Processing(obj, context=context, **kwargs)
-    
-    def GetOrCreateContext(self, user_id: int) -> FSMContext:
-        context = self._users.get(user_id)
-        if context is None:
-            context = FSMContext(user_id)
-            self._users[user_id] = context
-        return context
+        return await super().Processing(obj, context=context, **kwargs)
     

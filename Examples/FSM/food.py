@@ -28,26 +28,20 @@ class OrderFood(Enum):
 
 fsm = FSM(Chat(ChatType.PRIVATE))
 
+
 @fsm.Message(Command('start'))
 async def _(message: Message, state: FSMContext):
-    state.Clear()
+    await state.Clear()
     await message.Answer(
         text="Выберите, что хотите заказать: "
              "блюда (/food) или напитки (/drinks).",
         reply_markup=RemoveKeyboard()
     )
 
-@fsm.Message(State(None), Or(Command("cancel"), InSequence('отмена')))
-async def _(message: Message, state: FSMContext):
-    state.ClearData()
-    await message.Answer(
-        text="Нечего отменять",
-        reply_markup=RemoveKeyboard()
-    )
 
 @fsm.Message(Not(State(None)), Or(Command("cancel"), InSequence('отмена')))
 async def _(message: Message, state: FSMContext):
-    state.Clear()
+    await state.Clear()
     await message.Answer(
         text="Действие отменено",
         reply_markup=RemoveKeyboard()
@@ -56,11 +50,11 @@ async def _(message: Message, state: FSMContext):
 
 @fsm.Message(Command('state'))
 async def _(message: Message, context: FSMContext):
-    await message.Answer(f'{context.state=}')
+    await message.Answer(f'{await context.GetState()=}')
 
 @fsm.Message(Command('data'))
 async def _(message: Message, context: FSMContext):
-    await message.Answer(f'{context.data=}')
+    await message.Answer(f'{await context.GetData()=}')
 
 
 @fsm.Message(State(None), Command('food'))
@@ -69,17 +63,22 @@ async def _(message: Message, state: FSMContext):
         text="Выберите блюдо:",
         reply_markup=MakeKeyboard(available_food_names)
     )
-    state.SetState(OrderFood.choosing_food_name)
+    await state.SetState(OrderFood.choosing_food_name)
 
+@fsm.Message(Not(State(None)), Command('food'))
+async def _(message: Message):
+    await message.Answer(
+        text="Вы уже выбираете блюдо:",
+    )
 
 @fsm.Message(State(OrderFood.choosing_food_name), InSequence(*available_food_names))
 async def _(message: Message, state: FSMContext):
-    state.SetData(chosen_food=message.text.lower())
+    await state.UpdateData(chosen_food=message.text.lower())
     await message.Answer(
         text="Спасибо. Теперь, пожалуйста, выберите размер порции:",
         reply_markup=MakeKeyboard(available_food_sizes)
     )
-    state.SetState(OrderFood.choosing_food_size)
+    await state.SetState(OrderFood.choosing_food_size)
 
 @fsm.Message(State(OrderFood.choosing_food_name))
 async def _(message: Message):
@@ -92,8 +91,9 @@ async def _(message: Message):
 
 @fsm.Message(State(OrderFood.choosing_food_size), InSequence(*available_food_sizes))
 async def _(message: Message, state: FSMContext):
-    user_data = state.GetData()
-    state.Clear()
+    user_data = await state.GetData()
+    await state.Clear()
+    
     await message.Answer(
         text=f"Вы выбрали {message.text.lower()} порцию {user_data['chosen_food']}.\n"
              f"Попробуйте теперь заказать напитки: /drinks",

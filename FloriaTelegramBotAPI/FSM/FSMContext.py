@@ -1,56 +1,41 @@
-from typing import Any, Optional
+from typing import Any, Optional, TypeVar, Generic
 
+from ..Storage import StorageContext
 from .. import Validator
+from .FSMModel import FSMModel, TFSMModel
 
 
-class FSMContext:
+class FSMContext(Generic[TFSMModel]):
+    """Контекст FSM для управления состоянием и данными пользователя"""
+    
     def __init__(
         self,
-        user_id: int,
-        state: Optional[Any] = None,
+        context: StorageContext[TFSMModel],
     ):
-        self._user_id = Validator.IsInstance(user_id, int)
-        self._state: Optional[Any] = state
-        self._data: dict[str, Optional[Any]] = {}
+        self._context: StorageContext[TFSMModel] = context
 
 # data    
-    def SetData(self, **kwargs):
-        self._data.update(kwargs)
+    async def GetData(self):
+        return (await self._context.Get()).data
     
-    def GetData(self) -> dict[str, Optional[Any]]:
-        return self._data.copy()
+    async def UpdateData(self, **values):
+        (await self.GetData()).update(**values)
     
-    def PopData(self) -> dict[str, Optional[Any]]:
-        data = self.GetData()
-        self.ClearData()
-        return data
-    
-    def ClearData(self, default: dict[str, Optional[Any]] = None):
-        self._data = default or {}
-    
-    @property
-    def data(self) -> dict[str, Optional[Any]]:
-        return self.GetData()
+    async def ClearData(self):
+        (await self._context.Get()).data = {}
     
 # state
-    def SetState(self, value: Optional[Any]):
-        self._state = value
+    async def SetState(self, state):
+        (await self._context.Get()).state = state
     
-    def ClearState(self):
-        self._state = None
+    async def ClearState(self):
+        await self.SetState(None)
     
-    def GetState(self) -> Optional[Any]:
-        return self._state
-    
-    @property
-    def state(self) -> Optional[Any]:
-        return self.GetState()
-    
-    @state.setter
-    def state(self, value: Optional[Any]):
-        self.SetState(value)
-    
-    def Clear(self):
-        self.ClearState()
-        self.ClearData()
+    async def GetState(self):
+        return (await self._context.Get()).state
+
+# both
+    async def Clear(self):
+        await self.ClearState()
+        await self.ClearData()
     

@@ -9,13 +9,15 @@ from .. import Validator
 
 
 class Router:
+    """Маршрутизатор для обработки объектов обновлений"""
+
     def __init__(self, *filters: Filter):
         self._filters = FilterContainer(*filters)
         self._handlers = HandlerContainer()
         self._routers: list[Router] = []
     
     async def Processing(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
-        if self._filters.Validate(obj, **kwargs):
+        if await self._filters.Validate(obj, **kwargs):
             if await self._handlers.Invoke(obj, **kwargs):
                 return True
             

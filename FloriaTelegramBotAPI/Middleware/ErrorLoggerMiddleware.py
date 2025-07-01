@@ -4,6 +4,8 @@ from .. import Extractor
 
 
 class ErrorLoggerMiddleware(BaseMiddleware):
+    """Логирует ошибки обработчиков"""
+
     async def Invoke(self, handler, obj, **kwargs):
         try:
             return await super().Invoke(handler, obj, **kwargs)

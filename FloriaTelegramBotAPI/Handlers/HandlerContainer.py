@@ -9,6 +9,8 @@ from .. import Validator
 
 
 class HandlerContainer:
+    """Контейнер для регистрации и вызова обработчиков"""
+
     def __init__(self):
         self._handlers: list[Handler] = []
         self._mixins: list[Type[Mixin]] = []
@@ -51,7 +53,7 @@ class HandlerContainer:
         return self._mixins
     @mixins.setter
     def mixins(self, value: list[Type[Mixin]]):
-        self._mixins = Validator.ListTypes(value, Mixin)
+        self._mixins = Validator.List(value, Mixin)
     
     @property
     def middleware(self) -> BaseMiddleware:

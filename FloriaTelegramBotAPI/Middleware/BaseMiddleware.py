@@ -7,6 +7,8 @@ from ..Types import DefaultTypes
 
 
 class BaseMiddleware:
+    """Базовый класс для реализации middleware"""
+
     def __init__(self, *filters: Filter):
         self._filters = FilterContainer(*filters)
     
@@ -24,6 +26,6 @@ class BaseMiddleware:
         obj: DefaultTypes.UpdateObject,
         **kwargs
     ) -> bool:
-        if self._filters.Validate(obj, **kwargs):
+        if await self._filters.Validate(obj, **kwargs):
             return await self.Invoke(handler, obj, **kwargs)
         return False
