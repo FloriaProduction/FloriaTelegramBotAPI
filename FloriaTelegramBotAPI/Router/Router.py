@@ -5,13 +5,14 @@ from ..Handlers import HandlerContainer, Handler, Handlers
 from ..Filters.BaseFilter import Filter
 from ..Filters.FilterContainer import FilterContainer
 from ..Middleware import BaseMiddleware
+from .. import Validator
 
 
 class Router:
     def __init__(self, *filters: Filter):
-        self._filters: FilterContainer = FilterContainer(*filters)
-        self._handlers: HandlerContainer = HandlerContainer()
-        self._routers: set[Router] = set()
+        self._filters = FilterContainer(*filters)
+        self._handlers = HandlerContainer()
+        self._routers: list[Router] = []
     
     async def Processing(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         if self._filters.Validate(obj, **kwargs):
@@ -25,17 +26,19 @@ class Router:
         return False
             
     def Mount(self, router: 'Router'):
-        self._routers.add(router)
+        if router in self._routers:
+            raise ValueError()
+        self._routers.append(Validator.IsSubClass(router, Router))
     
     def Unmount(self, router: 'Router'):
         self._routers.remove(router)
     
     @property
     def middleware(self) -> BaseMiddleware:
-        return self._handlers._middleware
+        return self._handlers.middleware
     @middleware.setter
     def middleware(self, value: BaseMiddleware):
-        self._handlers._middleware = value
+        self._handlers.middleware = value
         
     @overload
     def Callback(

@@ -5,7 +5,7 @@ import re
 from .BaseFilter import Filter
 
 from ..Types import DefaultTypes
-from .. import Enums
+from .. import Extractor, Enums, Validator
 
 
 class IsMessage(Filter):
@@ -20,7 +20,7 @@ class Command(IsCommand):
     def __init__(self, *commands: str):
         super().__init__()
         
-        self._commands = commands
+        self._commands = Validator.List(commands, str, subclass=False)
         
     def Check(self, obj: DefaultTypes.Message, **kwargs):
         return super().Check(obj, **kwargs) and obj.text[1:] in self._commands
@@ -34,7 +34,7 @@ class IsCallback(Filter):
 class Not(Filter):
     def __init__(self, filter: Filter):
         super().__init__()
-        self._filter = filter
+        self._filter = Validator.IsSubClass(filter, Filter)
     
     def Check(self, obj, **kwargs):
         return not self._filter(obj, **kwargs)
@@ -42,7 +42,7 @@ class Not(Filter):
 class Or(Filter):
     def __init__(self, *filters: Filter):
         super().__init__()
-        self._filters = filters
+        self._filters = Validator.List(filters, Filter)
     
     def Check(self, obj, **kwargs):
         for filter in self._filters:
@@ -54,14 +54,10 @@ class Or(Filter):
 class Chat(Filter):
     def __init__(self, *types: Enums.ChatType):
         super().__init__()
-        self._types = types
+        self._types = Validator.List(types, Enums.ChatType, subclass=False)
     
     def Check(self, obj, **kwargs):
-        if isinstance(obj, DefaultTypes.Message):
-            return obj.chat.type in self._types
-        elif isinstance(obj, DefaultTypes.CallbackQuery):
-            return obj.message.chat.type in self._types
-        raise ValueError()
+        return Extractor.GetChat(obj).type in self._types
 
 class InSequence(IsMessage):
     def __init__(self, *items: str, lower: bool = True):
@@ -78,7 +74,7 @@ class InSequence(IsMessage):
 class InEnum(InSequence):
     def __init__(self, *enums: Type[Enum], by_keys: bool = False, lower: bool = True):
         items = []
-        for enum in enums:
+        for enum in Validator.List(enums, Type[Enum]):
             items += [
                 key if by_keys else value.value
                 for key, value in enum._member_map_.items()
@@ -88,7 +84,7 @@ class InEnum(InSequence):
 class Regex(IsMessage):
     def __init__(self, pattern: str):
         super().__init__()
-        self._pattern: str = pattern
+        self._pattern = Validator.IsInstance(pattern, str)
     
     def Check(self, obj, **kwargs):
         return super().Check(obj, **kwargs) and obj.text is not None and re.fullmatch(self._pattern, obj.text) is not None

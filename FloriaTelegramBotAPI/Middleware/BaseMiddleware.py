@@ -8,7 +8,7 @@ from ..Types import DefaultTypes
 
 class BaseMiddleware:
     def __init__(self, *filters: Filter):
-        self._filters: FilterContainer = FilterContainer(*filters)
+        self._filters = FilterContainer(*filters)
     
     async def Invoke(
         self,

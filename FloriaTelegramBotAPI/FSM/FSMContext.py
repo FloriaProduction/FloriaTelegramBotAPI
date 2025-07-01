@@ -1,13 +1,15 @@
 from typing import Any, Optional
 
+from .. import Validator
+
 
 class FSMContext:
     def __init__(
         self,
         user_id: int,
-        state: Any = None,
+        state: Optional[Any] = None,
     ):
-        self._user_id: int = user_id
+        self._user_id = Validator.IsInstance(user_id, int)
         self._state: Optional[Any] = state
         self._data: dict[str, Optional[Any]] = {}
 

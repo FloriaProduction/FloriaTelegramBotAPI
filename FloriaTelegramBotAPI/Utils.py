@@ -3,8 +3,6 @@ from pydantic import BaseModel
 import inspect
 import os
 
-from .Types import DefaultTypes
-
 
 def RemoveKeys(data: dict[str, Any], *keys: str) -> dict[str, Any]:
     return {
@@ -106,38 +104,3 @@ async def InvokeFunction(
             raise RuntimeError(f"""\n\tNo passed Name or Type found for field '{key}({type})' of function: \n\t{GetPathToObject(func)}""")
         
     return await func(**kwargs)
-
-async def CallHandlers(
-    handlers,
-    *args,
-    **kwargs
-) -> bool:
-    for handler in handlers:
-        if await handler(*args, **kwargs):
-            return True
-    return False
-
-class Validator:
-    @staticmethod
-    def List(type: Type[Any], data: list[Any], subclass: bool = True) -> list[Any]:
-        for item in data:
-            if subclass and not issubclass(item.__class__, type) or not subclass and not isinstance(item, type):
-                raise ValueError()
-        return [*data]
-        
-class Transformator:
-    @staticmethod
-    def GetUser(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
-        if isinstance(obj, DefaultTypes.Message):
-            return obj.from_user
-        elif isinstance(obj, DefaultTypes.CallbackQuery):
-            return obj.from_user
-        raise ValueError()
-    
-    @staticmethod
-    def GetChat(obj: DefaultTypes.UpdateObject) -> DefaultTypes.Chat:
-        if isinstance(obj, DefaultTypes.Message):
-            return obj.chat
-        elif isinstance(obj, DefaultTypes.CallbackQuery):
-            return obj.message.chat
-        raise ValueError()

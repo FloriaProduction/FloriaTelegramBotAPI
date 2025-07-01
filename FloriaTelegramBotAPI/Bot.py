@@ -6,14 +6,15 @@ from .Config import Config
 from . import Utils, Exceptions, Enums
 from .Types import DefaultTypes, MethodForms
 from .Router import Router
+from . import Validator
 
 
 class Bot(Router):
-    def __init__(self, token: str, config: Config = None):
+    def __init__(self, token: str, config: Optional[Config] = None):
         super().__init__()
         
-        self._token = token
-        self._config = config or Config()
+        self._token = Validator.IsInstance(token, str)
+        self._config = Validator.IsSubClass(config, Config | None) or Config()
         self._is_enabled = True
         
         self._client = httpx.AsyncClient(timeout=self.config.timeout)
@@ -28,7 +29,7 @@ class Bot(Router):
     async def Init(self):
         self._info = DefaultTypes.User(**(await self._RequestGet('getMe'))['result'])
         
-        self._logger = logging.getLogger(f'{self._info.username[:self.config.name_max_length]}{'..' if len(self._info.username) > self.config.name_max_length else ''}({self._info.id})')
+        self._logger = logging.getLogger(f'{self.info.username[:self.config.name_max_length]}{'..' if len(self.info.username) > self.config.name_max_length else ''}({self.info.id})')
         
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(self._config.stream_handler_level)
@@ -86,7 +87,7 @@ class Bot(Router):
                 finally:
                     pass
     
-    async def _makeRequest(
+    async def _MakeRequest(
         self, 
         method: Callable, 
         command: str,
@@ -118,7 +119,7 @@ class Bot(Router):
         command: str, 
         data: Optional[Any] = None
     ) -> httpx.Response:
-        return await self._makeRequest(
+        return await self._MakeRequest(
             self._client.get, 
             command,
             
@@ -130,7 +131,7 @@ class Bot(Router):
         command: str, 
         data: Any,
     ) -> httpx.Response:
-        return await self._makeRequest(
+        return await self._MakeRequest(
             self._client.post, 
             command,
             
@@ -143,7 +144,7 @@ class Bot(Router):
         data: Any,
         files: Any = None
     ) -> httpx.Response:
-        return await self._makeRequest(
+        return await self._MakeRequest(
             self._client.post,
             command,
             
@@ -180,7 +181,7 @@ class Bot(Router):
 
 class APIMethods:
     def __init__(self, bot: 'Bot'):
-        self._bot = bot
+        self._bot = Validator.IsSubClass(bot, Bot)
     
     @staticmethod
     def _ResponseToMessage(response) -> DefaultTypes.Message:

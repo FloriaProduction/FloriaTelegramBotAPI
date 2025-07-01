@@ -1,25 +1,34 @@
 import inspect
-from typing import Callable, Union, Literal, Any, Type
+from typing import Callable, Union, Literal, Any, ParamSpecKwargs, Type
 
 from .BaseHandler import Handler
 from ..Middleware.BaseMiddleware import BaseMiddleware
 from ..Types import DefaultTypes
+from ..Mixin import Mixin
+from .. import Validator
 
 
 class HandlerContainer:
     def __init__(self):
         self._handlers: list[Handler] = []
-        self._mixins: list[Type] = []
+        self._mixins: list[Type[Mixin]] = []
         self._middleware: BaseMiddleware = BaseMiddleware()
     
-    def RegisterHandler(self, func: Callable[[], Union[Literal[False], Any]], handler: Handler, *mixins: Type, **kwargs) -> Callable[[], Union[Literal[False], Any]]:
+    def RegisterHandler(
+        self, 
+        func: Callable[[ParamSpecKwargs], Union[Literal[False], Any]], 
+        handler: Handler, 
+        *mixins: Type[Mixin], 
+        **kwargs
+    ) -> Callable[[ParamSpecKwargs], Union[Literal[False], Any]]:
         if not inspect.iscoroutinefunction(func):
             raise ValueError()
         
-        if not issubclass(handler.__class__, Handler):
-            raise ValueError()
+        handler = Validator.IsSubClass(handler, Handler)
+        mixins = Validator.List(mixins, Type[Mixin])
         
-        handler.__class__ = type(f'{handler.__class__.__name__}_Mixed', (*self._mixins, *mixins, handler.__class__), {})
+        if self._mixins or mixins:
+            handler.__class__ = type(f'{handler.__class__.__name__}_Mixed', (*self._mixins, *mixins, handler.__class__), {})
         
         handler._func = func
         for key, value in kwargs.items():
@@ -38,9 +47,16 @@ class HandlerContainer:
         return await self.Invoke(obj, **kwargs)
     
     @property
+    def mixins(self) -> list[Type[Mixin]]:
+        return self._mixins
+    @mixins.setter
+    def mixins(self, value: list[Type[Mixin]]):
+        self._mixins = Validator.ListTypes(value, Mixin)
+    
+    @property
     def middleware(self) -> BaseMiddleware:
         return self._middleware
     @middleware.setter
     def middleware(self, value: BaseMiddleware):
-        self._middleware = value
+        self._middleware = Validator.IsSubClass(value, BaseMiddleware)
     

@@ -3,7 +3,7 @@ from typing import Callable, Union, Literal, Any, overload, ParamSpecKwargs
 from ..Filters.BaseFilter import Filter
 from ..Filters.FilterContainer import FilterContainer
 from ..Types import DefaultTypes
-from .. import Utils
+from .. import Extractor, Utils
 
 
 class Handler:    
@@ -12,19 +12,19 @@ class Handler:
         *filters: Filter,
         **kwargs: dict[str, Any]
     ):
-        self._func: Callable[[], Union[Literal[False], Any]] = None
+        self._func: Callable[[], Union[Literal[False], Any]] = lambda *args, **kwargs: print(f'Empty handler function')
         self._filters = FilterContainer(*filters)
         self._kwargs = kwargs
     
     def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         return self._filters.Validate(obj, **kwargs)
 
-    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, bot, **kwargs) -> list[Any]:
+    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, **kwargs) -> list[Any]:
         return [
             obj,
-            bot,
-            Utils.LazyObject(DefaultTypes.User, lambda: Utils.Transformator.GetUser(obj)),
-            Utils.LazyObject(DefaultTypes.Chat, lambda: Utils.Transformator.GetChat(obj)),
+            kwargs.get('bot'),
+            Utils.LazyObject(DefaultTypes.User, lambda: Extractor.GetUser(obj)),
+            Utils.LazyObject(DefaultTypes.Chat, lambda: Extractor.GetChat(obj)),
         ]
     
     def GetPassedByName(self, obj: DefaultTypes.UpdateObject, **kwargs) -> dict[str, Any]:

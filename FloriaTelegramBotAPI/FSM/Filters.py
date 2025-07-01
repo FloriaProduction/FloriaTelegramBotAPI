@@ -6,9 +6,9 @@ from .FSMContext import FSMContext
 
 
 class State(Filter):
-    def __init__(self, state: Any):
+    def __init__(self, *states: Any):
         super().__init__()
-        self._state = state
+        self._states = states
     
     def Check(self, obj, context: FSMContext, **kwargs):
-        return context.state == self._state
+        return context.state in self._states
