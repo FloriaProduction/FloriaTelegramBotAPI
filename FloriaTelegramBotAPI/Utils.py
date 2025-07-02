@@ -125,35 +125,51 @@ async def InvokeFunction(
         Any: Результат выполнения функции
     """
     
-    passed_by_type_dict = {}
+    type_candidates = {}
     for value in passed_by_type:
         if value is None:
             continue
-        if issubclass(value.__class__, LazyObject):
-            passed_by_type_dict[value.type] = value
+            
+        if isinstance(value, LazyObject):
+            type_candidates[value.type] = value
+            
+            if origin := get_origin(value.type):
+                type_candidates[origin] = value
+                
         else:
-            passed_by_type_dict[value.__class__] = value
-        
+            obj_type = type(value)
+            type_candidates[obj_type] = value
+            
+            if origin := get_origin(obj_type):
+                type_candidates[origin] = value
+
     kwargs: dict[str, Any] = {}
-    for key, type in func.__annotations__.items():
+    for key, ann_type in func.__annotations__.items():
         if key in passed_by_name:
             kwargs[key] = passed_by_name[key]
             continue
         
-        types_to_try = None
-        if get_origin(type) is Union:
-            types_to_try = get_args(type)
+        try_types = []
+        if get_origin(ann_type) is Union:
+            try_types = [*get_args(ann_type)]
         else:
-            types_to_try = (type,)
+            try_types = [ann_type]
         
-        for try_type in types_to_try:
-            if try_type not in passed_by_type_dict:
-                continue
-            value = passed_by_type_dict[try_type]
-            kwargs[key] = value() if issubclass(value.__class__, LazyObject) else value
-            break
+        for t in try_types.copy():
+            origin = get_origin(t)
+            if origin is not None:
+                try_types.append(origin)
         
-        else:
-            raise RuntimeError(f"""\n\tNo passed Name or Type found for field '{key}({type})' of function: \n\t{GetPathToObject(func)}""")
+        value = None
+        for t in try_types:
+            if t in type_candidates:
+                candidate = type_candidates[t]
+                value = candidate() if isinstance(candidate, LazyObject) else candidate
+                break
+        
+        if value is None:
+            raise RuntimeError(f"""\n\tNo match for '{key}: {ann_type}' in function: \n\t{GetPathToObject(func)}""")
+        
+        kwargs[key] = value
         
     return await func(**kwargs)
