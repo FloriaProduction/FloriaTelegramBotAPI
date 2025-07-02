@@ -14,7 +14,10 @@ class FSMContext(Generic[TFSMModel]):
     ):
         self._context: StorageContext[TFSMModel] = context
 
-# data    
+    async def GetModel(self):
+        return await self._context.Get()
+
+# data 
     async def GetData(self):
         return (await self._context.Get()).data
     
