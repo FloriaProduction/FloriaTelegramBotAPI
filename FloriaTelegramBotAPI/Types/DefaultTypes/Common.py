@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from enum import Enum
 from typing import Any, Optional, Union
 from ... import Enums
@@ -584,7 +584,7 @@ class CopyTextButton(BaseModel):
 class InlineKeyboardButton(BaseModel):
     text: str
     url: Optional[str] = None
-    callback_data: Optional[str] = None
+    callback_data: Optional[str] = None#Field(default=None, min_length=1, max_length=64)
     web_app: Optional[WebAppInfo] = None
     login_url: Optional[LoginUrl] = None
     switch_inline_query: Optional[str] = None
@@ -593,6 +593,12 @@ class InlineKeyboardButton(BaseModel):
     copy_text: Optional[CopyTextButton] = None
     callback_game: Optional[str] = None #Optional[CallbackGame] = None
     pay: Optional[bool] = None
+    
+    @model_validator(mode='after')
+    def validator(self):
+        if self.callback_data is not None and 1 > len(self.callback_data.encode()) > 64:
+            raise ValueError()
+        return self
 
 class InlineKeyboardMarkup(BaseModel):
     inline_keyboard: list[list[InlineKeyboardButton]]
