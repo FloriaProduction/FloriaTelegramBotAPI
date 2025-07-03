@@ -1,7 +1,10 @@
-from typing import Union, Optional, Any, Callable, Type, Literal, get_args, get_origin
+from typing import Union, Optional, Any, Callable, Type, Literal, get_args, get_origin, TypeVar
 from pydantic import BaseModel
 import inspect
 import os
+
+T = TypeVar("T")
+T2 = TypeVar("T2")
 
 
 def RemoveKeys(data: dict[str, Any], *keys: str) -> dict[str, Any]:
@@ -104,6 +107,9 @@ class LazyObject:
     
     def __call__(self):
         return self.func(*self.args, **self.kwargs)
+
+def MapOptional(data: Optional[T], func: Callable[[T], T2]) -> Optional[T2]:
+    return None if data is None else func(data)
 
 async def InvokeFunction(
     func: Callable, 

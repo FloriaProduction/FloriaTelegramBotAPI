@@ -104,6 +104,21 @@ class BotMethods:
             ) 
         return self._ResponseToMessage(response)
     
+    async def AnswerCallbackQuery(
+        self,
+        callback_query_id: str,
+        text: Optional[str] = None,
+        show_alert: Optional[bool] = None,
+        url: Optional[str] = None,
+        cache_time: Optional[int] = None,
+        **kwargs
+    ):
+        kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        await self.client.RequestPost(
+            'answerCallbackQuery',
+            MethodForms.AnswerCallbackQuery(**kwargs)
+        )
+    
     @property
     def config(self) -> Config:
         return self._bot.config

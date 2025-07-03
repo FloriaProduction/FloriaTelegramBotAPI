@@ -1,5 +1,6 @@
 import httpx
 from typing import Any, Callable, Optional
+import json
 
 from .Config import Config
 from . import Utils, Validator
@@ -37,7 +38,7 @@ class WebClient:
                 )
                 data: dict = response.json()
                 if not response.is_success:
-                    raise Exception(f'\n\tCode: {data.get('error_code')}\n\tDescription: {data.get('description')}\n\tCommand: {command}\n\tRequest: {response.request.content}')
+                    raise Exception(f'\n\tCode: {data.get('error_code')}\n\tDescription: {data.get('description')}\n\tCommand: {command}\n\tRequest: \n{ json.dumps(json.loads(response.request.content.decode()), ensure_ascii=False, indent=4) }')
                 
                 return data
             

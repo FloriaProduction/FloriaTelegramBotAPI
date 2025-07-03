@@ -54,3 +54,10 @@ class SendPhoto(BaseModel):
     ]] = None
     business_connection_id: Optional[str] = None
     message_thread_id: Optional[int] = None
+
+class AnswerCallbackQuery(BaseModel):
+    callback_query_id: str
+    text: Optional[str] = None
+    show_alert: Optional[bool] = None
+    url: Optional[str] = None
+    cache_time: Optional[int] = None

@@ -1,0 +1,1 @@
+class CallbackData(dict): pass

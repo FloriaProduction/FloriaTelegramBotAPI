@@ -26,7 +26,7 @@ class Handler:
             obj,
             kwargs.get('bot'),
             Utils.LazyObject(DefaultTypes.User, lambda: Extractor.GetUser(obj)),
-            Utils.LazyObject(DefaultTypes.Chat, lambda: Extractor.GetChat(obj)),
+            Utils.LazyObject(DefaultTypes.Chat, lambda: Extractor.GetChat(obj))
         ]
     
     def GetPassedByName(self, obj: DefaultTypes.UpdateObject, **kwargs) -> dict[str, Any]:
@@ -34,12 +34,19 @@ class Handler:
 
     async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         if await self.Validate(obj, **kwargs):
-            return await Utils.InvokeFunction(
-                self._func,
-                passed_by_name=self.GetPassedByName(obj, **kwargs),
-                passed_by_type=self.GetPassedByType(obj, **kwargs)
+            return await self.PostInvoke(
+                await Utils.InvokeFunction(
+                    self._func,
+                    passed_by_name=self.GetPassedByName(obj, **kwargs),
+                    passed_by_type=self.GetPassedByType(obj, **kwargs)
+                ),
+                obj,
+                **kwargs
             ) is not False
         return False
+    
+    async def PostInvoke(self, result: bool, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+        return result
         
     async def __call__(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
         return await self.Invoke(obj, **kwargs)

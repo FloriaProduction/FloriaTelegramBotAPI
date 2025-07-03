@@ -6,8 +6,9 @@ from ... import Utils, Enums
 
 
 class Message:
-    def __init__(self, bot, message: DefaultTypes.Message):
-        self.bot = bot
+    def __init__(self, bot, message: DefaultTypes.MaybeInaccessibleMessage):
+        from ...Bot import Bot
+        self.bot: Bot = bot
         self.origin = message
     
     async def Send(
