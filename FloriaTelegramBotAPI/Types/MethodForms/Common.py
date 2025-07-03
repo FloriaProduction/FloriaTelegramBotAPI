@@ -55,9 +55,22 @@ class SendPhoto(BaseModel):
     business_connection_id: Optional[str] = None
     message_thread_id: Optional[int] = None
 
+
 class AnswerCallbackQuery(BaseModel):
     callback_query_id: str
     text: Optional[str] = None
     show_alert: Optional[bool] = None
     url: Optional[str] = None
     cache_time: Optional[int] = None
+
+
+class EditMessageText(BaseModel):
+    text: str
+    chat_id: Optional[str | int] = None
+    reply_markup: Optional[DefaultTypes.InlineKeyboardMarkup] = None
+    parse_mode: Optional[Enums.ParseMode] = None
+    business_connection_id: Optional[str] = None
+    message_id: Optional[int] = None
+    inline_message_id: Optional[str] = None
+    entities: Optional[list[DefaultTypes.MessageEntity]] = None
+    link_preview_options: Optional[DefaultTypes.LinkPreviewOptions] = None

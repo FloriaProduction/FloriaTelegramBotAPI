@@ -2,13 +2,13 @@ from typing import Optional, Type, Any
 from pydantic import BaseModel
 import json
 
-from .... import DefaultTypes, EasyTypes
+from .... import DefaultTypes
 from ..... import Utils
 
 
-def Button(
+def InlineButton(
     text: str,
-    callback_data: Optional[EasyTypes.CallbackData] = None,
+    callback_data: Optional[BaseModel] = None,
     copy_text: Optional[str] = None,
     url: Optional[str] = None,
     web_app: Optional[str] = None,
@@ -32,14 +32,3 @@ def Button(
         callback_game=callback_game,
         pay=pay
     )
-
-def InlineTextButton(
-    text: str
-) -> DefaultTypes.InlineKeyboardButton:
-    return Button(text)
-
-def CallbackDataButton(
-    text: str,
-    data: EasyTypes.CallbackData
-) -> DefaultTypes.InlineKeyboardButton:
-    return Button(text, callback_data=data)

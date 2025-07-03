@@ -1,7 +1,7 @@
 from typing import Optional
 
 from .....Types import DefaultTypes
-from ..... import Utils
+from ..... import Utils, Validator
 
 from ..NewLine import NewLine
 
@@ -28,7 +28,7 @@ class Keyboard:
     
         self.rows: list[list[DefaultTypes.KeyboardButton]] = []
         
-        if buttons: self.Add(*buttons)
+        if buttons: self.Add(*Validator.List(buttons, DefaultTypes.KeyboardButton))
     
     def Add(self, *buttons: DefaultTypes.KeyboardButton):
         row = []

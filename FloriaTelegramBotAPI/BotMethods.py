@@ -119,6 +119,25 @@ class BotMethods:
             MethodForms.AnswerCallbackQuery(**kwargs)
         )
     
+    async def EditMessageText(
+        self,
+        text: str,
+        chat_id: Optional[str | int] = None,
+        reply_markup: Optional[DefaultTypes.InlineKeyboardMarkup] = None,
+        parse_mode: Optional[Enums.ParseMode] = None,
+        business_connection_id: Optional[str] = None,
+        message_id: Optional[int] = None,
+        inline_message_id: Optional[str] = None,
+        entities: Optional[list[DefaultTypes.MessageEntity]] = None,
+        link_preview_options: Optional[DefaultTypes.LinkPreviewOptions] = None,
+        **kwargs
+    ):
+        kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        await self.client.RequestPost(
+            'editMessageText',
+            MethodForms.EditMessageText(**kwargs)
+        )
+    
     @property
     def config(self) -> Config:
         return self._bot.config
