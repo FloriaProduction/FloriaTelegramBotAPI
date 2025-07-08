@@ -1,17 +1,15 @@
 import httpx
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 import json
 
 from .Config import Config
-from . import Utils, Validator
+from . import Utils, Protocols
 
 
 class WebClient:
-    def __init__(self, token: str, bot):
-        from .Bot import Bot
-        
-        self._bot: Bot = Validator.IsSubClass(bot, Bot)
+    def __init__(self, token: str, config: Config):
         self.__token = token
+        self._config: Config = config
         
         self._client = httpx.AsyncClient(timeout=self.config.timeout)
     
@@ -25,10 +23,10 @@ class WebClient:
     
     async def MakeRequest(
         self, 
-        method: Callable, 
+        method: Protocols.Functions.CommonCallableAsync, 
         command: str,
-        **kwargs
-    ) -> httpx.Response:
+        **kwargs: Any
+    ) -> dict[str, Any]:
         current_attempt_count = 0
         while current_attempt_count < self.config.retry_count:
             try:
@@ -36,7 +34,7 @@ class WebClient:
                     url=f'https://api.telegram.org/bot{self.__token}/{command}',
                     **kwargs
                 )
-                data: dict = response.json()
+                data: dict[str, Any] = response.json()
                 if not response.is_success:
                     raise Exception(f'\n\tCode: {data.get('error_code')}\n\tDescription: {data.get('description')}\n\tCommand: {command}\n\tRequest: \n{ json.dumps(json.loads(response.request.content.decode()), ensure_ascii=False, indent=4) }')
                 
@@ -51,7 +49,7 @@ class WebClient:
         self, 
         command: str, 
         data: Optional[Any] = None
-    ) -> httpx.Response:
+    ) -> dict[str, Any]:
         return await self.MakeRequest(
             self._client.get, 
             command,
@@ -63,7 +61,7 @@ class WebClient:
         self, 
         command: str, 
         data: Any,
-    ) -> httpx.Response:
+    ) -> dict[str, Any]:
         return await self.MakeRequest(
             self._client.post, 
             command,
@@ -76,7 +74,7 @@ class WebClient:
         command: str,
         data: Any,
         files: Any = None
-    ) -> httpx.Response:
+    ) -> dict[str, Any]:
         return await self.MakeRequest(
             self._client.post,
             command,
@@ -87,4 +85,4 @@ class WebClient:
     
     @property
     def config(self) -> Config:
-        return self._bot.config
+        return self._config

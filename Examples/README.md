@@ -1,6 +1,6 @@
 # Примеры
 
-Здесь находятся примеры работы с [FloriaTelegramBotAPI](https://github.com/FloriaProduction/FloriaTelegramBotAPI)
+Здесь находятся примеры работы с [FloriaTelegramBotAPI](https://github.com/FloriaProduction/FloriaTelegramBotAPI) (Недействительные)
 
 Содержание:
 

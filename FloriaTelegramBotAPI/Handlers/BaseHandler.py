@@ -1,27 +1,23 @@
-from typing import Callable, Union, Literal, Any, overload, ParamSpecKwargs
+from typing import Any, Optional
 
-from ..Filters.BaseFilter import Filter
 from ..Filters.FilterContainer import FilterContainer
-from ..Types import DefaultTypes
-from .. import Extractor, Utils
+from .. import Extractor, Utils, Abc, Protocols, DefaultTypes
 
 
-class Handler:    
-    """Базовый класс обработчиков обновлений"""
-
+class Handler(Abc.Handler):
     def __init__(
         self,
-        *filters: Filter,
+        *filters: Abc.Filter,
         **kwargs: dict[str, Any]
     ):
-        self._func: Callable[[], Union[Literal[False], Any]] = lambda *args, **kwargs: print(f'Empty handler function')
+        self._func: Optional[Protocols.Functions.HandlerCallableAsync[...]] = None
         self._filters = FilterContainer(*filters)
         self._kwargs = kwargs
     
-    async def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
-        return await self._filters.Validate(obj, **kwargs)
+    async def Validate(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
+        return await self._filters.Invoke(obj, **kwargs)
 
-    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, **kwargs) -> list[Any]:
+    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> list[Any]:
         return [
             obj,
             kwargs.get('bot'),
@@ -29,10 +25,13 @@ class Handler:
             Utils.LazyObject(DefaultTypes.Chat, lambda: Extractor.GetChat(obj))
         ]
     
-    def GetPassedByName(self, obj: DefaultTypes.UpdateObject, **kwargs) -> dict[str, Any]:
+    def GetPassedByName(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> dict[str, Any]:
         return {}
 
-    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
+        if self._func is None:
+            raise RuntimeError()
+        
         if await self.Validate(obj, **kwargs):
             return await self.PostInvoke(
                 await Utils.InvokeFunction(
@@ -45,8 +44,8 @@ class Handler:
             ) is not False
         return False
     
-    async def PostInvoke(self, result: bool, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+    async def PostInvoke(self, result: bool, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
         return result
-        
-    async def __call__(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
-        return await self.Invoke(obj, **kwargs)
+    
+    def SetFunction(self, func: Protocols.Functions.HandlerCallableAsync[...]):
+        self._func = func

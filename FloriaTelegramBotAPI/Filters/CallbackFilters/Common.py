@@ -1,27 +1,50 @@
-from typing import Callable, Any
+from typing import Callable, Any, Literal, cast
+import json
 
-from ..BaseFilter import Filter
-from ...Types import DefaultTypes
-from ... import Validator
+from ... import Abc, DefaultTypes
 
 
-class IsCallback(Filter):
-    """Фильтр для callback-запросов"""
-    
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+class IsCallback(Abc.Filter):
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         return isinstance(obj, DefaultTypes.CallbackQuery)
 
-class CheckFields(IsCallback):
-    def __init__(self, **values: Any | Callable[[Any], bool]):
-        super().__init__()
-        self._values = values
-        
-    async def Check(self, obj, callbackdata: dict, **kwargs):
+
+class IsDeserialize(IsCallback):
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         if not await super().Check(obj, **kwargs):
             return False
         
+        query = cast(DefaultTypes.CallbackQuery, obj)
+        
+        if query.data is None:
+            return False
+        
+        try:
+            return json.loads(query.data)
+        
+        except json.JSONDecodeError:
+            return False
+
+
+class Fields(IsDeserialize):
+    def __init__(self, **values: Any | Callable[[Any], bool]):
+        self._values = values
+    
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        data = await super().Check(obj, **kwargs)
+        if data is False:
+            return False
+        
+        if not isinstance(data, dict):
+            raise RuntimeError()
+        
         for key, value in self._values.items():
-            if key not in callbackdata or (not value(callbackdata[key]) if isinstance(value, Callable) else callbackdata[key] != value):
+            if key not in data or (
+                not value(data[key])
+                if isinstance(value, Callable) else 
+                data[key] != value 
+            ):
                 return False
-            
+        
         return True
+                

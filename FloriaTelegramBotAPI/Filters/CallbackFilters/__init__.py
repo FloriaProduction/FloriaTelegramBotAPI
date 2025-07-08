@@ -1,1 +1,1 @@
-from .Common import IsCallback, CheckFields
+from .Common import IsCallback, IsDeserialize, Fields

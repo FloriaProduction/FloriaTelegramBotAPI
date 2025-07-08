@@ -1,11 +1,11 @@
 from FloriaTelegramBotAPI import Router
-from FloriaTelegramBotAPI.Middleware import BaseMiddleware
+from FloriaTelegramBotAPI.Middleware import Middleware
 from FloriaTelegramBotAPI.Types.EasyTypes import *
 from FloriaTelegramBotAPI.Filters import *
 from FloriaTelegramBotAPI.Enums import ChatType
 
 
-class LogMiddleware(BaseMiddleware):
+class LogMiddleware(Middleware):
     async def Invoke(self, handler, obj, bot, **kwargs):
         print(f'Before')
         result = await super().Invoke(handler, obj, bot, **kwargs)

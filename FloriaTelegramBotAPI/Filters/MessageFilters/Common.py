@@ -1,54 +1,61 @@
-from typing import Type
+from typing import Type, Any, Literal, cast
 from enum import Enum
 import re
 
-from ..BaseFilter import Filter
-from ...Types import DefaultTypes
-from ... import Validator
+from ... import Validator, Abc, DefaultTypes
 
 
-class IsMessage(Filter):
-    """Фильтр для сообщений (Message)"""
-    
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
+class IsMessage(Abc.Filter):
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         return isinstance(obj, DefaultTypes.Message)
 
+
 class IsCommand(IsMessage):
-    """Сообщение является командой (начинается с `/`)"""
-    
-    async def Check(self, obj: DefaultTypes.Message, **kwargs) -> bool:
-        return await super().Check(obj, **kwargs) and obj.text is not None and len(obj.text) > 0 and obj.text[0] == '/'
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        if not await super().Check(obj, **kwargs):
+            return False
+        
+        msg = cast(DefaultTypes.Message, obj)
+        
+        return msg.text is not None and len(msg.text) > 0 and msg.text[0] == '/'
+
 
 class Command(IsCommand):
-    """Сообщение содержит конкретную команду"""
-    
-    def __init__(self, *commands: str):
+    def __init__(self, *commands: str, lower: bool = True):
         super().__init__()
         
-        self._commands = Validator.List(commands, str, subclass=False)
+        verified_commands: list[str] = Validator.List(commands, str, subclass=False)
         
-    async def Check(self, obj: DefaultTypes.Message, **kwargs):
-        return await super().Check(obj, **kwargs) and obj.text[1:] in self._commands
+        self._commands: list[str] = [*map(lambda command: command.lower(), verified_commands)] if lower else verified_commands
+        self._lower = lower
+        
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        if not await super().Check(obj, **kwargs):
+            return False
+        
+        msg = cast(DefaultTypes.Message, obj)
+        command = cast(str, msg.text)[1:]
+        
+        return (command.lower() if self._lower else command) in self._commands
+
 
 class InSequence(IsMessage):
-    """Текст сообщения входит в список допустимых значений"""
-    
     def __init__(self, *items: str, lower: bool = True):
         super().__init__()
-        self._items = [
+        self._items: list[str] = [
             item.lower()
             for item in items
-        ] if lower else items
-        self._lower = lower
+        ] if lower else [*items]
+        self._lower: bool = lower
     
-    async def Check(self, obj, **kwargs):
-        return await super().Check(obj, **kwargs) and obj.text is not None and (obj.text.lower() if self._lower else obj.text ) in self._items
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        msg = cast(DefaultTypes.Message, obj)
+        return await super().Check(obj, **kwargs) and msg.text is not None and (msg.text.lower() if self._lower else msg.text) in self._items
+
 
 class InEnum(InSequence):
-    """Текст совпадает с ключом или значением enum"""
-    
     def __init__(self, *enums: Type[Enum], by_keys: bool = False, lower: bool = True):
-        items = []
+        items: list[str] = []
         for enum in Validator.List(enums, Type[Enum]):
             items += [
                 key if by_keys else value.value
@@ -56,12 +63,13 @@ class InEnum(InSequence):
             ]
         super().__init__(*items, lower=lower)
 
+
 class Regex(IsMessage):
-    """Текст сообщения соответствует регулярному выражению"""
-    
     def __init__(self, pattern: str):
         super().__init__()
-        self._pattern = Validator.IsInstance(pattern, str)
+        Validator.IsInstance(pattern, str)
+        self._pattern: str = pattern
     
-    async def Check(self, obj, **kwargs):
-        return await super().Check(obj, **kwargs) and obj.text is not None and re.fullmatch(self._pattern, obj.text) is not None
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        msg = cast(DefaultTypes.Message, obj)
+        return await super().Check(obj, **kwargs) and msg.text is not None and re.fullmatch(self._pattern, msg.text) is not None

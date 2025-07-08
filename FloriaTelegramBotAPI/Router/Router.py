@@ -1,98 +1,86 @@
-from typing import overload
+from typing import Any, Type
 
-from ..Types import DefaultTypes
-from ..Handlers import HandlerContainer, Handler, Handlers
-from ..Filters.BaseFilter import Filter
+from .. import DefaultTypes
+from ..Handlers import HandlerContainer, Handler
 from ..Filters.FilterContainer import FilterContainer
-from ..Middleware import BaseMiddleware
-from .. import Validator
+from ..Exceptions import ExceptionContainer
+from .. import Protocols, Abc
+from .RouterContainer import RouterContainer
 
 
-class Router:
-    """Маршрутизатор для обработки объектов обновлений"""
-
-    def __init__(self, *filters: Filter):
-        self._filters = FilterContainer(*filters)
-        self._handlers = HandlerContainer()
-        self._routers: list[Router] = []
+class Router(Abc.Router):
+    def __init__(self, *filters: Abc.Filter):
+        self._filters: FilterContainer = FilterContainer(*filters)
+        self._handlers: HandlerContainer = HandlerContainer()
+        self._routers: RouterContainer = RouterContainer()
+        self._exceptions: ExceptionContainer = ExceptionContainer()
     
-    async def Processing(self, obj: DefaultTypes.UpdateObject, **kwargs) -> bool:
-        if await self._filters.Validate(obj, **kwargs):
-            if await self._handlers.Invoke(obj, **kwargs):
-                return True
-            
-            for router in self._routers:
-                if await router.Processing(obj, **kwargs):
+    async def Processing(self, obj: DefaultTypes.UpdateObject, **kwargs: Any):
+        try:
+            if await self._filters.Invoke(obj, **kwargs) and \
+                (
+                    await self._handlers.Invoke(obj, **kwargs) or 
+                    await self._routers.Invoke(obj, **kwargs)
+                ):
                     return True
+                
+            return False
+        
+        except Exception as ex:
+            if not await self._exceptions.Invoke(ex, obj=obj):
+                raise
             
-        return False
-            
-    def Mount(self, router: 'Router'):
-        if router in self._routers:
-            raise ValueError()
-        self._routers.append(Validator.IsSubClass(router, Router))
+            return False
     
-    def Unmount(self, router: 'Router'):
-        self._routers.remove(router)
+    def Mount(self, router: Abc.Router):
+        self._routers.Register(router)
+    
+    def AddHandler(self, handler: Abc.Handler):
+        def wrapper(func: Protocols.Functions.HandlerCallableAsync[...]):
+            return self._handlers.Register(func, handler)
+        return wrapper
+    
+    def Exception(self, exception: Type[Exception]):
+        def wrapper(func: Protocols.Functions.ExceptionCallableAsync):
+            return self._exceptions.Register(exception, func)
+        return wrapper
+    
+    def __len__(self) -> int:
+        return len(self._routers)
+    
     
     @property
-    def middleware(self) -> BaseMiddleware:
+    def middleware(self) -> Abc.Middleware:
         return self._handlers.middleware
     @middleware.setter
-    def middleware(self, value: BaseMiddleware):
+    def middleware(self, value: Abc.Middleware):
         self._handlers.middleware = value
         
-    @overload
     def Callback(
         self,
-        *filters: Filter
-    ): ...
-    
-    def Callback(
-        self,
-        *args,
-        **kwargs
-    ):
-        def wrapper(func):
-            return self._handlers.RegisterHandler(func, Handlers.CallbackHandler(*args, **kwargs))
+        *filters: Abc.Filter,
+        **kwargs: Any
+    ) -> Protocols.Functions.WrapperHandlerCallable:
+        def wrapper(func: Protocols.Functions.HandlerCallableAsync[...]) -> Protocols.Functions.HandlerCallableAsync[...]:
+            from ..Handlers.Handlers import CallbackHandler
+            return self._handlers.Register(func, CallbackHandler(*filters, **kwargs))
         return wrapper
-    
-    @overload
-    def Message(
-        self,
-        *filters: Filter
-    ): ...
     
     def Message(
         self,
-        *args,
-        **kwargs
-    ):
-        def wrapper(func):
-            return self._handlers.RegisterHandler(func, Handlers.MessageHandler(*args, **kwargs))
+        *filters: Abc.Filter,
+        **kwargs: Any
+    ) -> Protocols.Functions.WrapperHandlerCallable:
+        def wrapper(func: Protocols.Functions.HandlerCallableAsync[...]) -> Protocols.Functions.HandlerCallableAsync[...]:
+            from ..Handlers.Handlers import MessageHandler
+            return self._handlers.Register(func, MessageHandler(*filters, **kwargs))
         return wrapper
-    
-    @overload
-    def Handler(
-        self,
-        *filters: Filter
-    ): ...
     
     def Handler(
         self,
-        *args,
-        **kwargs
-    ):
-        def wrapper(func):
-            return self._handlers.RegisterHandler(func, Handler(*args, **kwargs))
+        *filters: Abc.Filter,
+        **kwargs: Any
+    ) -> Protocols.Functions.WrapperHandlerCallable:
+        def wrapper(func: Protocols.Functions.HandlerCallableAsync[...]) -> Protocols.Functions.HandlerCallableAsync[...]:
+            return self._handlers.Register(func, Handler(*filters, **kwargs))
         return wrapper
-    
-    def AddHandler(
-        self, 
-        handler: Handlers.Handler
-    ):
-        def wrapper(func):
-            return self._handlers.RegisterHandler(func, handler)
-        return wrapper
-    
-    

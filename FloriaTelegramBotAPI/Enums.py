@@ -1,5 +1,6 @@
 from enum import Enum
 
+# TODO: Переписать с Enum на Flag
 
 class ParseMode(Enum):
     MARKDOWNV2 = 'MarkdownV2'

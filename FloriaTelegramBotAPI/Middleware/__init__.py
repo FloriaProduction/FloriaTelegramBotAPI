@@ -1,2 +1,1 @@
-from .BaseMiddleware import BaseMiddleware
-from .ErrorLoggerMiddleware import ErrorLoggerMiddleware
+from .BaseMiddleware import Middleware

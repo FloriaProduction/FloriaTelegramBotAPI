@@ -1,21 +1,16 @@
-from typing import Union, Optional, Any, Callable, Type, Literal, get_args, get_origin, TypeVar
+from typing import Union, Optional, Any, Callable, Type, get_args, get_origin, TypeVar, cast
+from types import UnionType
 from pydantic import BaseModel
 import inspect
 import os
+from . import Protocols
+
 
 T = TypeVar("T")
 T2 = TypeVar("T2")
 
 
 def RemoveKeys(data: dict[str, Any], *keys: str) -> dict[str, Any]:
-    """Удалить данные из словаря по ключам
-
-    Args:
-        data (dict[str, Any]): Словарь
-
-    Returns:
-        dict[str, Any]: Новый словарь
-    """
     return {
         key: value 
         for key, value in data.items()
@@ -23,14 +18,6 @@ def RemoveKeys(data: dict[str, Any], *keys: str) -> dict[str, Any]:
     }
 
 def RemoveValues(data: dict[str, Any], *values: Any) -> dict[str, Any]:
-    """Удалить данные из словаря по значениям
-
-    Args:
-        data (dict[str, Any]): Словарь
-
-    Returns:
-        dict[str, Any]: Новый словарь
-    """
     return {
         key: value
         for key, value in data.items()
@@ -40,142 +27,125 @@ def RemoveValues(data: dict[str, Any], *values: Any) -> dict[str, Any]:
 def ToDict(**kwargs: Any) -> dict[str, Any]:
     return kwargs
 
+
 def ConvertToJson(
-    obj: Union[
-        dict[str, Any],
-        list[Any],
-        Any
-    ]
-) -> Union[
-    dict[str, Any],
-    list[Any],
-    Any
-]:
-    """Рекурсивно конвертировать примитивы и pydantic.BaseModel в json-формат
-
-    Args:
-        obj (Union[ dict[str, Any], list[Any], Any ]): Объект для конвертации
-
-    Raises:
-        RuntimeError: Неизвестный тип
-
-    Returns:
-        Union[ dict[str, Any], list[Any], Any ]: Конвертированный объект в json-формате
-    """
-    
+    obj: Union[BaseModel, dict[str, Any], list[Any], str, int, float, bool, None]
+) -> Union[dict[str, Any], list[Any], str, int, float, bool, None]:    
     if isinstance(obj, dict):
         return {
             key: ConvertToJson(value)
             for key, value in obj.items()
         }
     
-    elif isinstance(obj, list | tuple):
+    elif isinstance(obj, list):
         return [
             ConvertToJson(value) 
             for value in obj
         ]
     
     elif issubclass(obj.__class__, BaseModel):
-        obj: BaseModel = obj
-        return obj.model_dump(mode='json', exclude_none=True)
+        return cast(BaseModel, obj).model_dump(mode='json', exclude_none=True)
     
-    elif obj.__class__ in [str, int, float, bool] or obj in [None]:
+    elif isinstance(obj, Union[str, int, float, bool]) or obj in [None]:
         return obj
     
     raise RuntimeError('Unsupport type')
 
 def GetPathToObject(obj: Any) -> str:
-    """Получить файл и линию объявления объекта
-
-    Args:
-        obj (Any): Объект
-
-    Returns:
-        str: Строчка формата 'File `_path_`, line `_number_`'
-    """
     return f'File "{os.path.abspath(inspect.getfile(obj))}", line {inspect.getsourcelines(obj)[1]}'
-
-class LazyObject:
-    """Класс-обертка ленивого вызова функции-инициализации для работы совместно с `InvokeFunction`
-    """
-    
-    def __init__(self, returning_type: Type, func: Callable[[], Any], *args, **kwargs):
-        self.type = returning_type
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-    
-    def __call__(self):
-        return self.func(*self.args, **self.kwargs)
 
 def MapOptional(data: Optional[T], func: Callable[[T], T2]) -> Optional[T2]:
     return None if data is None else func(data)
 
+class LazyObject:
+    def __init__(self, returning_type: Type[Any], func: Protocols.Functions.CommonCallable, *args: Any, **kwargs: Any):
+        self.type: Type[Any] = returning_type
+        self.func: Protocols.Functions.CommonCallable = func
+        self.args = args
+        self.kwargs = kwargs
+    
+    def Get(self):
+        return self.func(*self.args, **self.kwargs)
+
+# TODO: Разобраться в функции, оптимизировать
 async def InvokeFunction(
-    func: Callable, 
+    func: Protocols.Functions.HandlerCallableAsync[...], 
     *,
     passed_by_name: dict[str, Any] = {}, 
     passed_by_type: list[Any | LazyObject] = []
 ) -> Any:
-    """Вызов функции с передачей параметров по имени и типу
-
-    Args:
-        func (Callable): Сама функция
-        passed_by_name (dict[str, Any]): Словарь для передачи параметров по имени
-        passed_by_type (list[Any | LazyObject]): Словарь для передачи параметров по типу
-        
-    Raises:
-        RuntimeError: Не удалось найти параметра для какого-то либо параметра функции
-
-    Returns:
-        Any: Результат выполнения функции
-    """
+    # 1. Собираем доступные типы в словарь
+    type_candidates: dict[Type[Any], Any | LazyObject] = {
+        type(None): None
+    }
     
-    type_candidates = {}
     for value in passed_by_type:
         if value is None:
             continue
             
         if isinstance(value, LazyObject):
+            # Регистрируем основной тип и его origin (если есть)
             type_candidates[value.type] = value
-            
-            if origin := get_origin(value.type):
+            origin = get_origin(value.type)
+            if origin is not None:
                 type_candidates[origin] = value
-                
         else:
-            obj_type = type(value)
+            # Регистрируем конкретный тип и его origin
+            obj_type: Type[Any] = cast(Type[Any], type(value))
             type_candidates[obj_type] = value
-            
-            if origin := get_origin(obj_type):
+            origin = get_origin(obj_type)
+            if origin is not None:
                 type_candidates[origin] = value
 
-    kwargs: dict[str, Any] = {}
-    for key, ann_type in func.__annotations__.items():
-        if key in passed_by_name:
-            kwargs[key] = passed_by_name[key]
+    signature = inspect.signature(func)
+    kwargs = passed_by_name.copy()
+    errors: list[str] = []
+    
+    for param_name, param in signature.parameters.items():
+        if param_name in kwargs:
             continue
+            
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            continue
+            
+        ann = param.annotation
+        if ann is param.empty:
+            errors.append(f"'{param_name}' is missing type annotation")
+            continue
+            
+        candidate_types: set[Any] = set()
         
-        try_types = []
-        if get_origin(ann_type) is Union:
-            try_types = [*get_args(ann_type)]
+        if get_origin(ann) is Union or isinstance(ann, UnionType):
+            candidate_types.update(get_args(ann))
         else:
-            try_types = [ann_type]
+            candidate_types.add(ann)
         
-        for t in try_types.copy():
+        additional_types: set[Any] = set()
+        for t in candidate_types:
             origin = get_origin(t)
             if origin is not None:
-                try_types.append(origin)
+                additional_types.add(origin)
+        candidate_types.update(additional_types)
         
         value = None
-        for t in try_types:
+        for t in candidate_types:
             if t in type_candidates:
                 candidate = type_candidates[t]
-                value = candidate() if isinstance(candidate, LazyObject) else candidate
+                value = candidate.Get() if isinstance(candidate, LazyObject) else candidate
                 break
         
-        if value is None:
-            raise RuntimeError(f"""\n\tNo match for '{key}: {ann_type}' in function: \n\t{GetPathToObject(func)}""")
-        
-        kwargs[key] = value
-        
+        if value is not None:
+            kwargs[param_name] = value
+        elif param.default is param.empty:
+            type_names = [t.__name__ for t in candidate_types]
+            errors.append(f"{param_name}: {' | '.join(type_names)}")
+    
+    if errors:
+        available_types = ', '.join(t.__name__ for t in type_candidates)
+        error_msg = "\n  - ".join(errors)
+        raise RuntimeError(
+            f"Missing required arguments:\n  - {error_msg}\n"
+            f"Available types: {available_types}"
+        )
+    
     return await func(**kwargs)

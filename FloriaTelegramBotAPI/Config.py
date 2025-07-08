@@ -6,9 +6,6 @@ from .Enums import ParseMode
 
 
 class Config(BaseModel):
-    '''
-    Конфигурация бота
-    '''
     
     # connection
     timeout: float = 5
@@ -25,6 +22,10 @@ class Config(BaseModel):
     
     # parse
     parse_mode: Optional[ParseMode] = None
+    
+    
+    # BotMethods
+    callback_length_fix: Optional[str | bool] = False
     
     
         

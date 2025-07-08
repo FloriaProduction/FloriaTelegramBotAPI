@@ -1,37 +1,31 @@
-from .BaseFilter import Filter
+from typing import Any
+
 from .FilterContainer import FilterContainer
+from .. import Extractor, Enums, Validator, Abc, DefaultTypes
 
-from .. import Extractor, Enums, Validator
 
-
-class Not(Filter):
-    """Инвертирует результат фильтра"""
-    
-    def __init__(self, filter: Filter):
-        super().__init__()
-        self._filter = Validator.IsSubClass(filter, Filter)
-    
-    async def Check(self, obj, **kwargs):
-        return not await self._filter(obj, **kwargs)
-
-class Or(Filter):
-    """Проходит если ЛЮБОЙ из фильтров срабатывает"""
-    
-    def __init__(self, *filters: Filter):
-        super().__init__()
+class Not(Abc.Filter):
+    def __init__(self, filter: Abc.Filter):
+        Validator.IsSubClass(filter.__class__, Abc.Filter)
         
+        self._filter: Abc.Filter = filter
+    
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
+        return not await self._filter.Check(obj, **kwargs)
+
+
+class Or(Abc.Filter):
+    def __init__(self, *filters: Abc.Filter):
         self._filters = FilterContainer(*filters)
     
-    async def Check(self, obj, **kwargs):
-        return await self._filters.Validate(obj, **kwargs)
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
+        return await self._filters.Invoke(obj, **kwargs)
 
-class Chat(Filter):
-    """Проверяет тип чата"""
-    
+
+class Chat(Abc.Filter):
     def __init__(self, *types: Enums.ChatType):
-        super().__init__()
-        self._types = Validator.List(types, Enums.ChatType, subclass=False)
+        self._types: list[Enums.ChatType] = Validator.List(types, Enums.ChatType, subclass=False)
     
-    async def Check(self, obj, **kwargs):
+    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
         return Extractor.GetChat(obj).type in self._types
 

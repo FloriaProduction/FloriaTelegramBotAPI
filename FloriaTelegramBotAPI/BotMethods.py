@@ -1,20 +1,35 @@
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
-from .Types import DefaultTypes, MethodForms
 from .WebClient import WebClient
 from .Config import Config
-from . import Validator, Utils, Enums
+from . import Utils, Enums, MethodForms, DefaultTypes
+
 
 
 class BotMethods:
-    def __init__(self, bot):
-        from .Bot import Bot
-        
-        self._bot = Validator.IsSubClass(bot, Bot)
+    def __init__(self, config: Config, client: WebClient):
+        self._config: Config = config
+        self._client: WebClient = client
     
     @staticmethod
-    def _ResponseToMessage(response) -> DefaultTypes.Message:
+    def _ResponseToMessage(response: dict[str, Any]) -> DefaultTypes.Message:
         return DefaultTypes.Message(**response['result'])
+    
+    # def _ReplaceCallbackData(self, markup: Types.InlineKeyboardMarkup) -> Types.InlineKeyboardMarkup:
+    #     def SetCallbackData(button: Types.InlineKeyboardButton, new_data: str) -> Types.InlineKeyboardButton:
+    #         button.callback_data = new_data
+    #         return button
+            
+    #     markup.inline_keyboard = [
+    #         [
+    #             SetCallbackData(button, self._bot._callback_data_storage.Add(button.callback_data).hex) 
+    #             if self._bot._callback_data_storage is not None and button.callback_data is not None else 
+    #             button
+    #             for button in line
+    #         ]
+    #         for line in markup.inline_keyboard
+    #     ]
+    #     return markup
     
     async def SendMessage(
         self,
@@ -36,10 +51,13 @@ class BotMethods:
         protect_content: Optional[bool] = None,
         allow_paid_broadcast: Optional[bool] = None,
         message_effect_id: Optional[str] = None,
-        **kwargs
+        **kwargs: Any
     ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
-        kwargs.setdefault('parse_mode', self._bot.config.parse_mode)
+        kwargs.setdefault('parse_mode', self.config.parse_mode)
+        # if self._bot._callback_data_storage is not None and kwargs.get('reply_markup') is not None:
+        #     kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
+        
         
         return self._ResponseToMessage(
             await self.client.RequestPost(
@@ -54,7 +72,7 @@ class BotMethods:
         action: Enums.Action,
         business_connection_id: Optional[str] = None,
         message_thread_id: Optional[int] = None,
-        **kwargs
+        **kwargs: Any
     ):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
         await self.client.RequestPost(
@@ -83,9 +101,11 @@ class BotMethods:
         ]] = None,
         business_connection_id: Optional[str] = None,
         message_thread_id: Optional[int] = None,
-        **kwargs
-    ) -> DefaultTypes.Message:
+        **kwargs: Any
+    ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        # if self._bot._callback_data_storage is not None and kwargs.get('reply_markup') is not None:
+        #     kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
         
         response = None
         if isinstance(kwargs['photo'], str):
@@ -111,7 +131,7 @@ class BotMethods:
         show_alert: Optional[bool] = None,
         url: Optional[str] = None,
         cache_time: Optional[int] = None,
-        **kwargs
+        **kwargs: Any
     ):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
         await self.client.RequestPost(
@@ -130,9 +150,11 @@ class BotMethods:
         inline_message_id: Optional[str] = None,
         entities: Optional[list[DefaultTypes.MessageEntity]] = None,
         link_preview_options: Optional[DefaultTypes.LinkPreviewOptions] = None,
-        **kwargs
+        **kwargs: Any
     ):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        # if self._bot._callback_data_storage is not None and kwargs.get('reply_markup') is not None:
+        #     kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
         await self.client.RequestPost(
             'editMessageText',
             MethodForms.EditMessageText(**kwargs)
@@ -140,8 +162,8 @@ class BotMethods:
     
     @property
     def config(self) -> Config:
-        return self._bot.config
+        return self._config
     
     @property
     def client(self) -> WebClient:
-        return self._bot.client
+        return self._client
