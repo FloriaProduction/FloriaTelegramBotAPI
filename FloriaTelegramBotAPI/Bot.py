@@ -30,7 +30,7 @@ class Bot(Router):
         self._client: WebClient = WebClient(token, self._config)
         self._methods: BotMethods = BotMethods(self._config, self._client)
         
-    async def Polling(self):
+    async def Polling(self, *, skip_updates: bool = False):
         self._info = DefaultTypes.User(**(await self._client.RequestGet('getMe'))['result'])
         
         self._logger = logging.getLogger(
@@ -51,6 +51,11 @@ class Bot(Router):
             self._logger.addHandler(file_handler)
         
         self._logger.setLevel(self._config.stream_handler_level)
+        
+        if skip_updates:
+            for update in await self._client.GetUpdates(self._update_offset):
+                self._update_offset = update.pop('update_id')
+        
         self.logger.info(f'Initialized')
         
         try:

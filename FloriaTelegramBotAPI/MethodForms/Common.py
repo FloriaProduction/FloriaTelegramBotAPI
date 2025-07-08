@@ -14,7 +14,7 @@ class SendMessage(BaseModel):
         DefaultTypes.ReplyKeyboardRemove,
         DefaultTypes.ForceReply
     ]] = None
-    parse_mode: Optional[str] = None
+    parse_mode: Optional[Enums.ParseMode] = None
     business_connection_id: Optional[str] = None
     message_thread_id: Optional[int] = None
     entities: Optional[list[DefaultTypes.MessageEntity]] = None

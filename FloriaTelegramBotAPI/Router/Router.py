@@ -27,7 +27,7 @@ class Router(Abc.Router):
             return False
         
         except Exception as ex:
-            if not await self._exceptions.Invoke(ex, obj=obj):
+            if not await self._exceptions.Invoke(ex, obj=obj, **kwargs):
                 raise
             
             return False

@@ -1,5 +1,3 @@
-from ctypes import cast
-from tkinter import N
 from typing import Optional, Union, Any
 
 from .WebClient import WebClient
@@ -53,7 +51,7 @@ class BotMethods:
             DefaultTypes.ReplyKeyboardRemove,
             DefaultTypes.ForceReply
         ]] = None,
-        parse_mode: Optional[str] = None,
+        parse_mode: Optional[Enums.ParseMode] = None,
         business_connection_id: Optional[str] = None,
         message_thread_id: Optional[int] = None,
         entities: Optional[list[DefaultTypes.MessageEntity]] = None,
@@ -65,7 +63,8 @@ class BotMethods:
         **kwargs: Any
     ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
-        kwargs.setdefault('parse_mode', self.config.parse_mode)
+        if kwargs['parse_mode'] is None:
+            kwargs['parse_mode'] = self.config.parse_mode
         kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
         
         
@@ -114,6 +113,8 @@ class BotMethods:
         **kwargs: Any
     ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        if kwargs['parse_mode'] is None:
+            kwargs['parse_mode'] = self.config.parse_mode
         kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
         
         response = None
@@ -163,6 +164,8 @@ class BotMethods:
         **kwargs: Any
     ):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        if kwargs['parse_mode'] is None:
+            kwargs['parse_mode'] = self.config.parse_mode
         kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
         
         await self.client.RequestPost(
