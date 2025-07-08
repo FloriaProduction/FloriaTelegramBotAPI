@@ -22,8 +22,12 @@ class ExceptionContainer(Abc.Container[Exception]):
             if not issubclass(exception.__class__, ex):
                 continue
             
-            if await func(exception, **kwargs) is not False:
-                return True
+            try:
+                if await func(exception, **kwargs) is not False:
+                    return True
+            
+            except Exception as ex:
+                kwargs['bot'].logger.error(ex.__class__.__name__, exc_info=True)   
         
         return False
 

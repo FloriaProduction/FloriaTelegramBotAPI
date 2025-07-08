@@ -15,21 +15,21 @@ class Bot(Router):
     def __init__(self, token: str, config: Optional[Config] = None):
         super().__init__()
         
+        self._on_start_event: Event[Protocols.Functions.CommonCallableAsync] = Event()
+        self._on_stop_event: Event[Protocols.Functions.CommonCallableAsync] = Event()
+        
         self._config = config or Config()
         
         self._logger: Optional[logging.Logger] = None
         self._info: Optional[DefaultTypes.User] = None
-        self._is_enabled: bool = True
-        
-        self._on_start_event: Event[Protocols.Functions.CommonCallableAsync] = Event()
-        self._on_stop_event: Event[Protocols.Functions.CommonCallableAsync] = Event()
+        self._enabled: bool = True
         
         self._update_offset: int = 0
         
+        
         self._client: WebClient = WebClient(token, self._config)
         self._methods: BotMethods = BotMethods(self._config, self._client)
-
-
+        
     async def Polling(self):
         self._info = DefaultTypes.User(**(await self._client.RequestGet('getMe'))['result'])
         
@@ -56,7 +56,7 @@ class Bot(Router):
         try:
             await self._on_start_event()
             
-            while self.is_enabled:
+            while self.enabled:
                 schedule.run_pending()
                 for update in await self._client.GetUpdates(self._update_offset):
                     await self._ProcessUpdate(update)
@@ -109,16 +109,16 @@ class Bot(Router):
                 return None
     
     def _PostUpdateObject(self, obj: DefaultTypes.UpdateObject) -> DefaultTypes.UpdateObject:
-        # if self._callback_data_storage is not None and isinstance(obj, Types.CallbackQuery) and obj.data is not None:
-        #     obj.data = self._callback_data_storage.Get(obj.data)
+        if self.methods.callback_data_length_fix_enabled and isinstance(obj, DefaultTypes.CallbackQuery) and obj.data is not None:
+            obj.data = self.methods.callback_data_storage.Get(obj.data)
         
         return obj
     
     @property
-    def is_enabled(self) -> bool:
-        return self._is_enabled
+    def enabled(self) -> bool:
+        return self._enabled
     def Stop(self):
-        self._is_enabled = False
+        self._enabled = False
         
     @property
     def config(self) -> Config:

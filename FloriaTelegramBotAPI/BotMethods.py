@@ -1,8 +1,11 @@
+from ctypes import cast
+from tkinter import N
 from typing import Optional, Union, Any
 
 from .WebClient import WebClient
 from .Config import Config
 from . import Utils, Enums, MethodForms, DefaultTypes
+from .Classes import CallbackDataStorage
 
 
 
@@ -10,26 +13,34 @@ class BotMethods:
     def __init__(self, config: Config, client: WebClient):
         self._config: Config = config
         self._client: WebClient = client
+        
+        self._callback_data_storage = CallbackDataStorage.Storage() if self.config.callback_length_fix is not False else None
     
     @staticmethod
     def _ResponseToMessage(response: dict[str, Any]) -> DefaultTypes.Message:
         return DefaultTypes.Message(**response['result'])
     
-    # def _ReplaceCallbackData(self, markup: Types.InlineKeyboardMarkup) -> Types.InlineKeyboardMarkup:
-    #     def SetCallbackData(button: Types.InlineKeyboardButton, new_data: str) -> Types.InlineKeyboardButton:
-    #         button.callback_data = new_data
-    #         return button
-            
-    #     markup.inline_keyboard = [
-    #         [
-    #             SetCallbackData(button, self._bot._callback_data_storage.Add(button.callback_data).hex) 
-    #             if self._bot._callback_data_storage is not None and button.callback_data is not None else 
-    #             button
-    #             for button in line
-    #         ]
-    #         for line in markup.inline_keyboard
-    #     ]
-    #     return markup
+    def _ReplaceCallbackData(self, markup: Optional[DefaultTypes.InlineKeyboardMarkup]) -> Optional[DefaultTypes.InlineKeyboardMarkup]:
+        def SetCallbackData(button: DefaultTypes.InlineKeyboardButton, data: str) -> DefaultTypes.InlineKeyboardButton:
+            button.callback_data = data
+            return button
+        
+        if self._callback_data_storage is None or markup is None:
+            return markup
+        
+        markup.inline_keyboard = [
+            [
+                SetCallbackData(
+                    button, 
+                    self.callback_data_storage.Register(button.callback_data).hex
+                ) 
+                if button.callback_data is not None else 
+                button
+                for button in line
+            ]
+            for line in markup.inline_keyboard
+        ]
+        return markup
     
     async def SendMessage(
         self,
@@ -55,8 +66,7 @@ class BotMethods:
     ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
         kwargs.setdefault('parse_mode', self.config.parse_mode)
-        # if self._bot._callback_data_storage is not None and kwargs.get('reply_markup') is not None:
-        #     kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
+        kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
         
         
         return self._ResponseToMessage(
@@ -104,8 +114,7 @@ class BotMethods:
         **kwargs: Any
     ) -> DefaultTypes.Message: 
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
-        # if self._bot._callback_data_storage is not None and kwargs.get('reply_markup') is not None:
-        #     kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
+        kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
         
         response = None
         if isinstance(kwargs['photo'], str):
@@ -134,6 +143,7 @@ class BotMethods:
         **kwargs: Any
     ):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
+        
         await self.client.RequestPost(
             'answerCallbackQuery',
             MethodForms.AnswerCallbackQuery(**kwargs)
@@ -153,8 +163,8 @@ class BotMethods:
         **kwargs: Any
     ):
         kwargs.update(Utils.RemoveKeys(locals(), 'self', 'kwargs'))
-        # if self._bot._callback_data_storage is not None and kwargs.get('reply_markup') is not None:
-        #     kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
+        kwargs['reply_markup'] = self._ReplaceCallbackData(kwargs['reply_markup'])
+        
         await self.client.RequestPost(
             'editMessageText',
             MethodForms.EditMessageText(**kwargs)
@@ -167,3 +177,14 @@ class BotMethods:
     @property
     def client(self) -> WebClient:
         return self._client
+    
+    @property
+    def callback_data_storage(self) -> CallbackDataStorage.Storage:
+        if self._callback_data_storage is None:
+            raise RuntimeError()
+        return self._callback_data_storage
+    
+    @property
+    def callback_data_length_fix_enabled(self) -> bool:
+        return self._callback_data_storage is not None
+        

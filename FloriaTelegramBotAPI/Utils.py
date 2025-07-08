@@ -3,7 +3,7 @@ from types import UnionType
 from pydantic import BaseModel
 import inspect
 import os
-from . import Protocols
+from . import Protocols, DefaultTypes
 
 
 T = TypeVar("T")
@@ -29,7 +29,7 @@ def ToDict(**kwargs: Any) -> dict[str, Any]:
 
 
 def ConvertToJson(
-    obj: Union[BaseModel, dict[str, Any], list[Any], str, int, float, bool, None]
+    obj: DefaultTypes.PRIMITIVE_VALUES
 ) -> Union[dict[str, Any], list[Any], str, int, float, bool, None]:    
     if isinstance(obj, dict):
         return {

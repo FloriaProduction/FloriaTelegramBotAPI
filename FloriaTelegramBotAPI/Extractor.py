@@ -1,3 +1,5 @@
+from typing import Literal
+
 from . import Validator, DefaultTypes
 
 
@@ -19,3 +21,20 @@ def GetChat(obj: DefaultTypes.UpdateObject) -> DefaultTypes.Chat:
         return Validator.IsNotNone(obj.message).chat
     
     raise ValueError()
+
+def GetExceptionText(exc: Exception, type: Literal['full', 'only_name'] = 'full') -> str:
+    match type:
+        case 'full':
+            return f'Ошибка {exc.__class__.__name__}{
+                f':\n    {
+                    '\n    '.join(map(str, exc.args))
+                }' 
+                if len(exc.args) > 0 else 
+                ''
+            }'
+        
+        case 'only_name':
+            return f'Ошибка {exc.__class__.__name__}'
+        
+        case _:
+            raise ValueError()
