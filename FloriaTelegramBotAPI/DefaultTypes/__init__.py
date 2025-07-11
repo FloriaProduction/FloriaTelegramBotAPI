@@ -14,18 +14,20 @@ TUpdateObject = TypeVar("TUpdateObject", bound=UpdateObject)
 TUpdateObject_co = TypeVar("TUpdateObject_co", bound=UpdateObject, covariant=True)
 
 KEY_TYPES = Union[
-    str,
-    int,
-    UUID
+    str
 ]
 
-PRIMITIVE_VALUES = Union[
-    dict[str, 'PRIMITIVE_VALUES'],
-    list['PRIMITIVE_VALUES'],
+JSON_TYPES = Union[
+    dict[str, 'JSON_TYPES'],
+    list['JSON_TYPES'],
     str,
     int,
     float,
     bool,
     None,
+]
+
+PRIMITIVE_VALUES = Union[
+    JSON_TYPES,
     BaseModel
 ]

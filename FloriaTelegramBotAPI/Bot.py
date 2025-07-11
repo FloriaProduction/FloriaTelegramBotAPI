@@ -1,6 +1,9 @@
+import asyncio
 from typing import Optional, Any
 import logging
 import schedule
+
+from FloriaTelegramBotAPI import Utils
 
 from .Router import Router
 from .Config import Config
@@ -29,8 +32,29 @@ class Bot(Router):
         
         self._client: WebClient = WebClient(token, self._config)
         self._methods: BotMethods = BotMethods(self._config, self._client)
+    
+    
+    
+    def Run(
+        self, 
+        *, 
+        skip_updates: bool = False,
+        **kwargs: Any
+    ):
+        kwargs.update(Utils.RemoveKeys(locals(), 'kwargs', 'self'))
         
-    async def Polling(self, *, skip_updates: bool = False):
+        asyncio.run(
+            self.Polling(
+                **kwargs
+            )
+        )
+        
+    
+    async def Polling(
+        self, 
+        *, 
+        skip_updates: bool = False
+    ):
         self._info = DefaultTypes.User(**(await self._client.RequestGet('getMe'))['result'])
         
         self._logger = logging.getLogger(
@@ -66,8 +90,8 @@ class Bot(Router):
                 for update in await self._client.GetUpdates(self._update_offset):
                     await self._ProcessUpdate(update)
             
-        except:
-            pass
+        except Exception as ex:
+            self.logger.critical(ex.__class__.__name__, exc_info=True)
         
         finally:
             await self._on_stop_event()

@@ -1,10 +1,10 @@
-from typing import Generic, Optional, Iterator
+from typing import Generic, Optional, Iterator, Iterable
 from ..Abc.Storage import Storage, TStorageValue
 from ..DefaultTypes import KEY_TYPES
 
 
 class MemoryStorage(Storage[TStorageValue], Generic[TStorageValue]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         
         self._memory: dict[KEY_TYPES, TStorageValue] = {}
@@ -26,3 +26,5 @@ class MemoryStorage(Storage[TStorageValue], Generic[TStorageValue]):
         for key in [*self._memory.keys()]:
             yield key
     
+    def Items(self) -> Iterable[tuple[KEY_TYPES, TStorageValue]]:
+        return [*self._memory.items()]

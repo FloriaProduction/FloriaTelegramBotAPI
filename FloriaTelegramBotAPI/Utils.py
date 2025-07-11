@@ -1,9 +1,11 @@
+import json
 from typing import Union, Optional, Any, Callable, Type, get_args, get_origin, TypeVar, cast
 from types import UnionType
 from pydantic import BaseModel
 import inspect
 import os
 from . import Protocols, DefaultTypes
+import schedule
 
 
 T = TypeVar("T")
@@ -27,10 +29,9 @@ def RemoveValues(data: dict[str, Any], *values: Any) -> dict[str, Any]:
 def ToDict(**kwargs: Any) -> dict[str, Any]:
     return kwargs
 
-
 def ConvertToJson(
     obj: DefaultTypes.PRIMITIVE_VALUES
-) -> Union[dict[str, Any], list[Any], str, int, float, bool, None]:    
+) -> DefaultTypes.JSON_TYPES:
     if isinstance(obj, dict):
         return {
             key: ConvertToJson(value)
@@ -149,3 +150,36 @@ async def InvokeFunction(
         )
     
     return await func(**kwargs)
+
+def FileExists(path: str) -> bool:
+    return os.path.exists(path)
+
+def ReadFile(path: str) -> str:
+    with open(path, mode='r', encoding='utf-8') as file:
+        return file.read()
+
+def WriteFile(path: str, data: Any):
+    dir_path = os.path.dirname(path)
+    if len(dir_path) > 0 and not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+        
+    with open(path, mode='w', encoding='utf-8') as file:
+        file.write(f'{data}')
+
+def ReadJson(path: str) -> DefaultTypes.JSON_TYPES:
+    return json.loads(ReadFile(path))
+
+def WriteJson(path: str, data: DefaultTypes.JSON_TYPES):
+    WriteFile(path, json.dumps(data))
+    
+def AddEvery(seconds: int, func: Protocols.Functions.CommonCallable, *args: Any, **kwargs: Any):
+    schedule.every(seconds).seconds.do(func, *args, **kwargs) # type: ignore
+
+def Every(
+    seconds: int
+) -> Protocols.Functions.WrappedCommonCallable:
+    def wrapper(func: Protocols.Functions.CommonCallable) -> Protocols.Functions.CommonCallable:
+        AddEvery(seconds, func)
+        return func
+    return wrapper
+

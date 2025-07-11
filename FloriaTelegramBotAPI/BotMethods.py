@@ -30,7 +30,7 @@ class BotMethods:
             [
                 SetCallbackData(
                     button, 
-                    self.callback_data_storage.Register(button.callback_data).hex
+                    self.callback_data_storage.Register(button.callback_data)
                 ) 
                 if button.callback_data is not None else 
                 button

@@ -26,9 +26,7 @@ def GetExceptionText(exc: Exception, type: Literal['full', 'only_name'] = 'full'
     match type:
         case 'full':
             return f'Ошибка {exc.__class__.__name__}{
-                f':\n    {
-                    '\n    '.join(map(str, exc.args))
-                }' 
+                f':\n  {'\n  '.join(map(str, exc.args))}' 
                 if len(exc.args) > 0 else 
                 ''
             }'
