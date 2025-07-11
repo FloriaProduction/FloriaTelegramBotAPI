@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid import UUID, uuid4
 from pydantic import BaseModel
+import mmh3
 
 from FloriaTelegramBotAPI import Exceptions
 from .. import Abc, Utils
@@ -20,7 +20,7 @@ class Storage:
         Utils.AddEvery(10, self.Save)
     
     def Register(self, data: str, life_time: timedelta = timedelta(minutes=20)) -> str:       
-        token = uuid4().hex
+        token = mmh3.hash_bytes(data).hex()
         self._storage[token] = RecordData(
             data=data,
             expires_at=datetime.now() + life_time
