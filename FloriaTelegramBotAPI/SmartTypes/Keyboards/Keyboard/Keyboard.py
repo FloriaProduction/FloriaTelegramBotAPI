@@ -1,16 +1,16 @@
 from typing import Optional
 
-from .... import Utils, Validator, DefaultTypes
+from .... import Utils, Validator, Types
 
 from ..NewLine import NewLine
 
 
-class RemoveKeyboard(DefaultTypes.ReplyKeyboardRemove): pass
+class RemoveKeyboard(Types.ReplyKeyboardRemove): pass
 
 class Keyboard:
     def __init__(
         self, 
-        *buttons: DefaultTypes.KeyboardButton, 
+        *buttons: Types.KeyboardButton, 
         
         is_persistent: Optional[bool] = None,
         resize: Optional[bool] = None,
@@ -24,12 +24,12 @@ class Keyboard:
         self.input_field_placeholder: Optional[str] = input_field_placeholder
         self.selective: Optional[bool] = selective
     
-        self.rows: list[list[DefaultTypes.KeyboardButton]] = []
+        self.rows: list[list[Types.KeyboardButton]] = []
         
-        if buttons: self.Add(*Validator.List(buttons, DefaultTypes.KeyboardButton))
+        if buttons: self.Add(*Validator.List(buttons, Types.KeyboardButton))
     
-    def Add(self, *buttons: DefaultTypes.KeyboardButton):
-        row: list[DefaultTypes.KeyboardButton] = []
+    def Add(self, *buttons: Types.KeyboardButton):
+        row: list[Types.KeyboardButton] = []
         for button in buttons:
             if issubclass(button.__class__, NewLine):
                 self.rows.append([*row])
@@ -39,8 +39,8 @@ class Keyboard:
         if row:
             self.rows.append([*row])
     
-    def As_Markup(self) -> DefaultTypes.ReplyKeyboardMarkup:
-        return DefaultTypes.ReplyKeyboardMarkup(
+    def As_Markup(self) -> Types.ReplyKeyboardMarkup:
+        return Types.ReplyKeyboardMarkup(
             **Utils.RemoveValues(
                 Utils.ToDict(
                     keyboard=[

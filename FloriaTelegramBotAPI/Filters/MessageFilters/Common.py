@@ -2,20 +2,20 @@ from typing import Type, Any, Literal, cast
 from enum import Enum
 import re
 
-from ... import Validator, Abc, DefaultTypes
+from ... import Validator, Abc, Types
 
 
 class IsMessage(Abc.Filter):
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
-        return isinstance(obj, DefaultTypes.Message)
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        return isinstance(obj, Types.Message)
 
 
 class IsCommand(IsMessage):
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         if not await super().Check(obj, **kwargs):
             return False
         
-        msg = cast(DefaultTypes.Message, obj)
+        msg = cast(Types.Message, obj)
         
         return msg.text is not None and len(msg.text) > 0 and msg.text[0] == '/'
 
@@ -29,12 +29,12 @@ class Command(IsCommand):
         self._commands: list[str] = [*map(lambda command: command.lower(), verified_commands)] if lower else verified_commands
         self._lower = lower
         
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         if not await super().Check(obj, **kwargs):
             return False
         
-        msg = cast(DefaultTypes.Message, obj)
-        command = cast(str, msg.text)[1:]
+        msg = cast(Types.Message, obj)
+        command = cast(str, msg.text).split(' ')[0][1:]
         
         return (command.lower() if self._lower else command) in self._commands
 
@@ -48,8 +48,8 @@ class InSequence(IsMessage):
         ] if lower else [*items]
         self._lower: bool = lower
     
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
-        msg = cast(DefaultTypes.Message, obj)
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        msg = cast(Types.Message, obj)
         return await super().Check(obj, **kwargs) and msg.text is not None and (msg.text.lower() if self._lower else msg.text) in self._items
 
 
@@ -70,6 +70,6 @@ class Regex(IsMessage):
         Validator.IsInstance(pattern, str)
         self._pattern: str = pattern
     
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
-        msg = cast(DefaultTypes.Message, obj)
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        msg = cast(Types.Message, obj)
         return await super().Check(obj, **kwargs) and msg.text is not None and re.fullmatch(self._pattern, msg.text) is not None

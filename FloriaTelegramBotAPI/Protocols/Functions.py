@@ -9,6 +9,11 @@ class CommonCallable(Protocol):
         ...
 TCommonCallable = TypeVar("TCommonCallable", bound=CommonCallable)
 
+class WrappedCommonCallable(Protocol):
+    def __call__(self, func: CommonCallable) -> CommonCallable:
+        ...
+TWrappedCommonCallable = TypeVar("TWrappedCommonCallable", bound=WrappedCommonCallable)
+
 class CommonCallableAsync(Protocol):
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
         ...
@@ -38,3 +43,11 @@ class WrapperExceptionCallable(Protocol):
     def __call__(self, func: ExceptionCallableAsync) -> ExceptionCallableAsync:
         ...
 TWrapperExceptionCallable = TypeVar("TWrapperExceptionCallable", bound=WrapperExceptionCallable)
+
+CommonCallableAny = Union[
+    CommonCallable,
+    CommonCallableAsync
+]
+TCommonCallableAny = TypeVar("TCommonCallableAny", bound=CommonCallableAny)
+
+

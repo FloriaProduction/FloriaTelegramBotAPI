@@ -1,6 +1,6 @@
 from enum import Enum, auto
 
-from FloriaTelegramBotAPI.DefaultTypes import DefaultTypes
+from FloriaTelegramBotAPI.Types import DefaultTypes
 from FloriaTelegramBotAPI.Types.EasyTypes import *
 from FloriaTelegramBotAPI.Types.EasyTypes.Keyboards.Keyboard import *
 from FloriaTelegramBotAPI.FSM import *

@@ -1,17 +1,17 @@
 from typing import Any, Generic
 from abc import ABC, abstractmethod
 
-from ..Protocols.Functions import TCommonCallableAsync
+from ..Protocols.Functions import TCommonCallableAny
 
 
-class Event(ABC, Generic[TCommonCallableAsync]):
+class Event(ABC, Generic[TCommonCallableAny]):
     @abstractmethod
-    def Register(self, func: TCommonCallableAsync):
+    def Register(self, func: TCommonCallableAny):
         ...
     
     @abstractmethod
-    async def Invoke(self, *args: Any, **kwargs: Any):
+    async def Invoke(self):
         ...
     
-    async def __call__(self, *args: Any, **kwargs: Any):
-        return await self.Invoke(*args, **kwargs)
+    async def __call__(self):
+        return await self.Invoke()

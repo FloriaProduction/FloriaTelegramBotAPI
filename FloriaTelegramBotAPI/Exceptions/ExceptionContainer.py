@@ -18,13 +18,15 @@ class ExceptionContainer(Abc.Container[Exception]):
         return func
         
     async def Invoke(self, exception: Exception, **kwargs: Any) -> bool:
+        kwargs['bot'].logger.error(exception.__class__.__name__, exc_info=True) 
+        
         for ex, func in self._exceptions:
             if not issubclass(exception.__class__, ex):
                 continue
             
             if await func(exception, **kwargs) is not False:
                 return True
-        
+            
         return False
 
     def __len__(self):

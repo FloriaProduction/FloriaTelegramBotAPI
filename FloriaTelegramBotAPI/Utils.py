@@ -1,9 +1,11 @@
-from typing import Union, Optional, Any, Callable, Type, get_args, get_origin, TypeVar, cast
+import json
+from typing import Union, Optional, Any, Callable, Type, get_args, get_origin, TypeVar, cast, Literal
 from types import UnionType
 from pydantic import BaseModel
 import inspect
 import os
-from . import Protocols
+from . import Protocols, Types
+import schedule
 
 
 T = TypeVar("T")
@@ -27,10 +29,9 @@ def RemoveValues(data: dict[str, Any], *values: Any) -> dict[str, Any]:
 def ToDict(**kwargs: Any) -> dict[str, Any]:
     return kwargs
 
-
 def ConvertToJson(
-    obj: Union[BaseModel, dict[str, Any], list[Any], str, int, float, bool, None]
-) -> Union[dict[str, Any], list[Any], str, int, float, bool, None]:    
+    obj: Types.PRIMITIVE_VALUES
+) -> Types.JSON_TYPES:
     if isinstance(obj, dict):
         return {
             key: ConvertToJson(value)
@@ -149,3 +150,51 @@ async def InvokeFunction(
         )
     
     return await func(**kwargs)
+
+def ExceptionToText(exc: Exception, type: Literal['full', 'only_name'] = 'full') -> str:
+    match type:
+        case 'full':
+            return f'Ошибка {exc.__class__.__name__}{
+                f':\n  {'\n  '.join(map(str, exc.args))}' 
+                if len(exc.args) > 0 else 
+                ''
+            }'
+        
+        case 'only_name':
+            return f'Ошибка {exc.__class__.__name__}'
+        
+        case _:
+            raise ValueError()
+
+def FileExists(path: str) -> bool:
+    return os.path.exists(path)
+
+def ReadFile(path: str, mode: Union[Literal['r', 'rb'], str] = 'r') -> str | bytes:
+    with open(path, mode=mode, encoding='utf-8') as file:
+        return file.read()
+
+def WriteFile(path: str, data: Any):
+    dir_path = os.path.dirname(path)
+    if len(dir_path) > 0 and not os.path.exists(dir_path):
+        os.makedirs(dir_path, exist_ok=True)
+        
+    with open(path, mode='w', encoding='utf-8') as file:
+        file.write(f'{data}')
+
+def ReadJson(path: str) -> Types.JSON_TYPES:
+    return json.loads(ReadFile(path))
+
+def WriteJson(path: str, data: Types.JSON_TYPES):
+    WriteFile(path, json.dumps(data))
+    
+def AddEvery(seconds: int, func: Protocols.Functions.CommonCallable, *args: Any, **kwargs: Any):
+    schedule.every(seconds).seconds.do(func, *args, **kwargs) # type: ignore
+
+def Every(
+    seconds: int
+) -> Protocols.Functions.WrappedCommonCallable:
+    def wrapper(func: Protocols.Functions.CommonCallable) -> Protocols.Functions.CommonCallable:
+        AddEvery(seconds, func)
+        return func
+    return wrapper
+

@@ -1,20 +1,20 @@
 from typing import Callable, Any, Literal, cast
 import json
 
-from ... import Abc, DefaultTypes
+from ... import Abc, Types
 
 
 class IsCallback(Abc.Filter):
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
-        return isinstance(obj, DefaultTypes.CallbackQuery)
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+        return isinstance(obj, Types.CallbackQuery)
 
 
 class IsDeserialize(IsCallback):
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         if not await super().Check(obj, **kwargs):
             return False
         
-        query = cast(DefaultTypes.CallbackQuery, obj)
+        query = cast(Types.CallbackQuery, obj)
         
         if query.data is None:
             return False
@@ -30,7 +30,7 @@ class Fields(IsDeserialize):
     def __init__(self, **values: Any | Callable[[Any], bool]):
         self._values = values
     
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         data = await super().Check(obj, **kwargs)
         if data is False:
             return False

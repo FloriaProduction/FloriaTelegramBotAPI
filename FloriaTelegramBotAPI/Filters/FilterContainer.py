@@ -1,6 +1,6 @@
 from typing import Any
 
-from .. import DefaultTypes
+from .. import Types
 from .. import Abc, Validator
 
 
@@ -13,7 +13,7 @@ class FilterContainer(Abc.Container[Abc.Filter]):
     def Register(self, *filters: Abc.Filter):    
         self._filters += Validator.List(filters, Abc.Filter)
     
-    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
+    async def Invoke(self, obj: Types.UpdateObject, **kwargs: Any) -> bool:
         for filter in self._filters:
             if not await filter.Check(obj, **kwargs):
                 return False

@@ -1,6 +1,6 @@
 from typing import cast, Union
 
-from .... import DefaultTypes, Utils, Validator
+from .... import Types, Utils, Validator
 
 from ..NewLine import NewLine
 
@@ -8,25 +8,25 @@ from ..NewLine import NewLine
 class InlineKeyboard:
     def __init__(
         self, 
-        *buttons: DefaultTypes.InlineKeyboardButton | NewLine
+        *buttons: Types.InlineKeyboardButton | NewLine
     ):
-        self.rows: list[list[DefaultTypes.InlineKeyboardButton]] = []
+        self.rows: list[list[Types.InlineKeyboardButton]] = []
         
         if buttons: self.Add(*buttons)
     
-    def Add(self, *buttons: Union[DefaultTypes.InlineKeyboardButton, NewLine]):
-        row: list[DefaultTypes.InlineKeyboardButton] = []
-        for button in Validator.List(buttons, DefaultTypes.InlineKeyboardButton, NewLine, subclass=False):
+    def Add(self, *buttons: Union[Types.InlineKeyboardButton, NewLine]):
+        row: list[Types.InlineKeyboardButton] = []
+        for button in Validator.List(buttons, Types.InlineKeyboardButton, NewLine, subclass=False):
             if issubclass(button.__class__, NewLine):
                 self.rows.append([*row])
                 row.clear()
             else:
-                row.append(cast(DefaultTypes.InlineKeyboardButton, button))
+                row.append(cast(Types.InlineKeyboardButton, button))
         if row:
             self.rows.append([*row])
     
-    def As_Markup(self) -> DefaultTypes.InlineKeyboardMarkup:
-        return DefaultTypes.InlineKeyboardMarkup(
+    def As_Markup(self) -> Types.InlineKeyboardMarkup:
+        return Types.InlineKeyboardMarkup(
             **Utils.RemoveValues(
                 Utils.ToDict(
                     inline_keyboard=[

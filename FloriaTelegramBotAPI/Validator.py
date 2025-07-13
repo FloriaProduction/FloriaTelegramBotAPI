@@ -61,7 +61,7 @@ def ByFunc(func: Callable[[T], bool], data: T) -> T:
     return data
 
 def IsCallableAsync(
-    func: T
+    func: T,
 ) -> T:
     if not inspect.iscoroutinefunction(func):
         raise ValueError()

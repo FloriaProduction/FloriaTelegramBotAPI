@@ -1,10 +1,10 @@
 from typing import Any, Literal
 from abc import ABC, abstractmethod
 
-from .. import DefaultTypes
+from .. import Types
 
 
 class Filter(ABC):
     @abstractmethod
-    async def Check(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
+    async def Check(self, obj: Types.UpdateObject, **kwargs: Any) -> Any | Literal[False]:
         ...

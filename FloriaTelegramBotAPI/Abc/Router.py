@@ -1,14 +1,14 @@
 from typing import Any, Type
 from abc import ABC, abstractmethod
 
-from .. import DefaultTypes
+from .. import Types
 from .Handler import Handler
 from .. import Protocols
 
 
 class Router(ABC):
     @abstractmethod
-    async def Processing(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool: ...
+    async def Processing(self, obj: Types.UpdateObject, **kwargs: Any) -> bool: ...
     
     @abstractmethod
     def Mount(self, router: 'Router'): ...
