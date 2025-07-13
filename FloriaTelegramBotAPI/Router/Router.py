@@ -1,6 +1,6 @@
 from typing import Any, Type
 
-from .. import DefaultTypes
+from .. import Types
 from ..Handlers import HandlerContainer, Handler
 from ..Filters.FilterContainer import FilterContainer
 from ..Exceptions import ExceptionContainer
@@ -15,7 +15,7 @@ class Router(Abc.Router):
         self._routers: RouterContainer = RouterContainer()
         self._exceptions: ExceptionContainer = ExceptionContainer()
     
-    async def Processing(self, obj: DefaultTypes.UpdateObject, **kwargs: Any):
+    async def Processing(self, obj: Types.UpdateObject, **kwargs: Any):
         try:
             if await self._filters.Invoke(obj, **kwargs) and \
                 (

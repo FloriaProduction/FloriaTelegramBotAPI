@@ -1,6 +1,6 @@
 from typing import Any
 
-from .. import Validator, Abc, DefaultTypes
+from .. import Validator, Abc, Types
 
 
 class RouterContainer(Abc.Container[Abc.Router]):
@@ -11,7 +11,7 @@ class RouterContainer(Abc.Container[Abc.Router]):
     def Register(self, *routes: Abc.Router):
         self._routers += Validator.List(routes, Abc.Router)
     
-    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs: Any):
+    async def Invoke(self, obj: Types.UpdateObject, **kwargs: Any):
         for router in self._routers:
             if await router.Processing(obj, **kwargs):
                 return True

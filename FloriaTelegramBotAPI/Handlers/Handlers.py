@@ -1,50 +1,59 @@
 from typing import Any, cast
 
 from .BaseHandler import Handler
-from .. import Utils, DefaultTypes, EasyTypes
+from .. import Utils, Types, SmartTypes
 from ..Bot import Bot
 
 
 class MessageHandler(Handler):
-    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
-        if isinstance(obj, DefaultTypes.Message):
+    async def Invoke(self, obj: Types.UpdateObject, **kwargs: Any) -> bool:
+        if isinstance(obj, Types.Message):
             return await super().Invoke(obj, **kwargs)
         return False
 
-    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> list[Any]:
+    def GetPassedByType(self, obj: Types.UpdateObject, **kwargs: Any) -> list[Any]:
         bot: Bot = kwargs['bot']
+        msg: Types.Message = cast(Types.Message, obj)
         return super().GetPassedByType(obj, **kwargs) + [
-            Utils.LazyObject(EasyTypes.Message, lambda: EasyTypes.Message(bot, cast(DefaultTypes.Message, obj)))
+            Utils.LazyObject(SmartTypes.Message, lambda: SmartTypes.Message(bot, msg)),
+            Utils.LazyObject(
+                SmartTypes.CommandArgs, 
+                lambda: SmartTypes.CommandArgs(
+                    msg.text.split(' ')[1:]
+                    if msg.text is not None and len(msg.text) > 0 and msg.text[0] == '/' else 
+                    []
+                )
+            )
         ]
 
 class CallbackHandler(Handler):
-    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
-        if isinstance(obj, DefaultTypes.CallbackQuery):
+    async def Invoke(self, obj: Types.UpdateObject, **kwargs: Any) -> bool:
+        if isinstance(obj, Types.CallbackQuery):
             return await super().Invoke(obj, **kwargs)
         return False
     
-    async def PostInvoke(self, result: bool, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
+    async def PostInvoke(self, result: bool, obj: Types.UpdateObject, **kwargs: Any) -> bool:
         bot: Bot = kwargs['bot']
-        await bot.methods.AnswerCallbackQuery(
-            callback_query_id=cast(DefaultTypes.CallbackQuery, obj).id
+        await bot.AnswerCallbackQuery(
+            callback_query_id=cast(Types.CallbackQuery, obj).id
         )
         return result
     
-    def GetPassedByType(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> list[Any]:
+    def GetPassedByType(self, obj: Types.UpdateObject, **kwargs: Any) -> list[Any]:
         bot: Bot = kwargs['bot']
         return super().GetPassedByType(obj, **kwargs) + [
             obj,
             Utils.MapOptional(
-                cast(DefaultTypes.CallbackQuery, obj).message, 
+                cast(Types.CallbackQuery, obj).message, 
                 lambda msg: Utils.LazyObject(
-                    EasyTypes.Message, 
-                    lambda: EasyTypes.Message(
+                    SmartTypes.Message, 
+                    lambda: SmartTypes.Message(
                         bot, 
                         msg
                     )
                 )
             ),
-            Utils.LazyObject(EasyTypes.CallbackQuery, lambda: EasyTypes.CallbackQuery(bot, cast(DefaultTypes.CallbackQuery, obj)))
+            Utils.LazyObject(SmartTypes.CallbackQuery, lambda: SmartTypes.CallbackQuery(bot, cast(Types.CallbackQuery, obj)))
         ]
     
 

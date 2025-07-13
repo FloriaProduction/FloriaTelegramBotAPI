@@ -692,7 +692,7 @@ class Message(BaseModel):
     audio: Optional[Audio] = None
     document: Optional[Document] = None
     paid_media: Optional[PaidMediaInfo] = None
-    photo: Optional[list[PhotoSize]] = []
+    photo: list[PhotoSize] = []
     sticker: Optional[Sticker] = None
     story: Optional[Story] = None
     video: Optional[Video] = None

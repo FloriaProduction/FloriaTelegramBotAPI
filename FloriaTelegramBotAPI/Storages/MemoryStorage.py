@@ -1,6 +1,6 @@
 from typing import Generic, Optional, Iterator, Iterable
 from ..Abc.Storage import Storage, TStorageValue
-from ..DefaultTypes import KEY_TYPES
+from ..Types import KEY_TYPES
 
 
 class MemoryStorage(Storage[TStorageValue], Generic[TStorageValue]):

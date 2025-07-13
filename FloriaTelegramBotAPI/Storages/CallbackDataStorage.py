@@ -5,7 +5,7 @@ import mmh3
 
 from FloriaTelegramBotAPI import Exceptions
 from .. import Abc, Utils
-from ..Storages import FileStorage
+from . import FileStorage
 
 
 class RecordData(BaseModel):
@@ -14,10 +14,10 @@ class RecordData(BaseModel):
 
 
 class Storage:
-    def __init__(self, storage: Optional[FileStorage[RecordData]] = None):
+    def __init__(self, storage: Optional[FileStorage[RecordData]] = None, save_interval: int = 5):
         self._storage: FileStorage[RecordData] = storage or FileStorage('callback_data_storage.json', RecordData)
         
-        Utils.AddEvery(10, self.Save)
+        Utils.AddEvery(save_interval, self.Save)
     
     def Register(self, data: str, life_time: timedelta = timedelta(minutes=20)) -> str:       
         token = mmh3.hash_bytes(data).hex()

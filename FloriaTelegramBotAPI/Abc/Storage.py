@@ -1,7 +1,7 @@
 from typing import Generic, Iterator, Optional, TypeVar, AsyncIterator
 from abc import ABC, abstractmethod
 
-from ..DefaultTypes import KEY_TYPES, PRIMITIVE_VALUES
+from ..Types import KEY_TYPES, PRIMITIVE_VALUES
 
 
 TStorageValue = TypeVar('TStorageValue', bound=PRIMITIVE_VALUES)

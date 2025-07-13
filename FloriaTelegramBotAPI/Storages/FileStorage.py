@@ -3,7 +3,7 @@ from typing import Generic, Optional, Type, cast
 from pydantic import BaseModel
 
 from ..Abc.Storage import TStorageValue
-from ..DefaultTypes import KEY_TYPES
+from ..Types import KEY_TYPES
 from .. import Utils
 
 from .MemoryStorage import MemoryStorage

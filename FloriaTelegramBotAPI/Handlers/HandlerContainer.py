@@ -1,6 +1,6 @@
 from typing import Any, Type, Optional
 
-from .. import DefaultTypes
+from .. import Types
 from .. import Validator
 from .. import Abc, Protocols
 from ..Middleware import Middleware
@@ -32,7 +32,7 @@ class HandlerContainer(Abc.Container[Abc.Handler]):
         
         return func
     
-    async def Invoke(self, obj: DefaultTypes.UpdateObject, **kwargs: Any) -> bool:
+    async def Invoke(self, obj: Types.UpdateObject, **kwargs: Any) -> bool:
         for handler in self._handlers:
             if await self._middleware.Invoke(handler, obj, **kwargs):
                 return True

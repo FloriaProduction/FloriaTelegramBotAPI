@@ -2,6 +2,7 @@ from typing import TypeVar, Union, Type
 from uuid import UUID
 
 from .Common import *
+from .Path import Path
 
 
 UpdateObject = Union[

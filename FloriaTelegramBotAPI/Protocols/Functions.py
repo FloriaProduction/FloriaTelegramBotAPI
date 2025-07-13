@@ -43,3 +43,11 @@ class WrapperExceptionCallable(Protocol):
     def __call__(self, func: ExceptionCallableAsync) -> ExceptionCallableAsync:
         ...
 TWrapperExceptionCallable = TypeVar("TWrapperExceptionCallable", bound=WrapperExceptionCallable)
+
+CommonCallableAny = Union[
+    CommonCallable,
+    CommonCallableAsync
+]
+TCommonCallableAny = TypeVar("TCommonCallableAny", bound=CommonCallableAny)
+
+

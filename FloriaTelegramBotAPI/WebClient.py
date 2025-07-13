@@ -3,7 +3,7 @@ from typing import Any, Optional
 import json
 
 from .Config import Config
-from . import Utils, Protocols
+from . import Utils, Protocols, Abc
 
 
 class WebClient:
@@ -27,21 +27,29 @@ class WebClient:
         command: str,
         **kwargs: Any
     ) -> dict[str, Any]:
-        current_attempt_count = 0
-        while current_attempt_count < self.config.retry_count:
+        for attempt in range(self.config.retry_count):
             try:
                 response: httpx.Response = await method(
                     url=f'https://api.telegram.org/bot{self.__token}/{command}',
                     **kwargs
                 )
+                
                 data: dict[str, Any] = response.json()
                 if not response.is_success:
-                    raise Exception(f'\n\tCode: {data.get('error_code')}\n\tDescription: {data.get('description')}\n\tCommand: {command}\n\tRequest: \n{ json.dumps(json.loads(response.request.content.decode()), ensure_ascii=False, indent=4) }')
-                
+                    raise Exception(
+                        f"\n\tCode: {data.get('error_code')}"
+                        f"\n\tDescription: {data.get('description')}"
+                        f"\n\tCommand: {command}"
+                        f"\n\tRequest: \n{json.dumps(json.loads(response.request.content.decode()), indent=4)}"
+                    )
+                    
                 return data
             
-            finally:
-                current_attempt_count += 1
+            except Exception as ex:
+                if attempt == self.config.retry_count - 1:
+                    raise httpx.RequestError(
+                        f'Failed after {self._config.retry_count} attempts: {str(ex)}'
+                    ) from ex
         
         raise httpx.RequestError(f'Failed to complete request after {self.config.retry_count} attempts')
         

@@ -1,38 +1,24 @@
 from typing import Literal
 
-from . import Validator, DefaultTypes
+from . import Validator, Types
 
 
-def GetUser(obj: DefaultTypes.UpdateObject) -> DefaultTypes.User:
-    if isinstance(obj, DefaultTypes.Message):
+def GetUser(obj: Types.UpdateObject) -> Types.User:
+    if isinstance(obj, Types.Message):
         return Validator.IsNotNone(obj.from_user)
     
-    elif isinstance(obj, DefaultTypes.CallbackQuery):
+    elif isinstance(obj, Types.CallbackQuery):
         return obj.from_user
     
     raise ValueError()
 
 
-def GetChat(obj: DefaultTypes.UpdateObject) -> DefaultTypes.Chat:
-    if isinstance(obj, DefaultTypes.Message):
+def GetChat(obj: Types.UpdateObject) -> Types.Chat:
+    if isinstance(obj, Types.Message):
         return obj.chat
     
-    elif isinstance(obj, DefaultTypes.CallbackQuery):
+    elif isinstance(obj, Types.CallbackQuery):
         return Validator.IsNotNone(obj.message).chat
     
     raise ValueError()
 
-def GetExceptionText(exc: Exception, type: Literal['full', 'only_name'] = 'full') -> str:
-    match type:
-        case 'full':
-            return f'Ошибка {exc.__class__.__name__}{
-                f':\n  {'\n  '.join(map(str, exc.args))}' 
-                if len(exc.args) > 0 else 
-                ''
-            }'
-        
-        case 'only_name':
-            return f'Ошибка {exc.__class__.__name__}'
-        
-        case _:
-            raise ValueError()
