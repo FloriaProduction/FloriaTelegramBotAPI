@@ -1,4 +1,4 @@
-from typing import Any, Generic
+from typing import Generic
 from abc import ABC, abstractmethod
 
 from ..Protocols.Functions import TCommonCallableAny

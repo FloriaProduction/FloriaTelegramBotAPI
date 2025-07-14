@@ -1,4 +1,5 @@
 import asyncio
+from datetime import timedelta
 from typing import Optional, Any, Union
 import logging
 import schedule
@@ -221,7 +222,10 @@ class Bot(Router):
                     continue
                 
                 button.callback_data = self._callback_data_storage.Register(
-                    button.callback_data
+                    button.callback_data,
+                    self.config.callback_data_life_time 
+                    if isinstance(self.config.callback_data_life_time, timedelta) else
+                    timedelta(seconds=self.config.callback_data_life_time)
                 )
         
         return markup
