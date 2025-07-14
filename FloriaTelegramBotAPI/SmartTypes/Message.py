@@ -6,6 +6,7 @@ from ..Types.Path import Path
 from .Keyboards.InlineKeyboard import InlineKeyboard
 from .Keyboards.Keyboard import Keyboard
 
+
 class Message:
     def __init__(self, bot: 'Bot', message: Types.MaybeInaccessibleMessage):
         Validator.IsInstance(bot, Bot)

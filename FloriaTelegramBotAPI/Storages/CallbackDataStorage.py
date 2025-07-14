@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import mmh3
 
 from FloriaTelegramBotAPI import Exceptions
-from .. import Abc, Utils
+from .. import Utils
 from . import FileStorage
 
 

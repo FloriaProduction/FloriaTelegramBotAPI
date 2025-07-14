@@ -1,4 +1,4 @@
-from typing import TypeVar, Union, Type
+from typing import TypeVar, Union, Type, TypedDict
 from uuid import UUID
 
 from .Common import *
@@ -20,6 +20,7 @@ KEY_TYPES = Union[
 
 JSON_TYPES = Union[
     dict[str, 'JSON_TYPES'],
+    TypedDict,
     list['JSON_TYPES'],
     str,
     int,

@@ -14,7 +14,7 @@ class ChatAction:
     async def _KeepSendingAction(self, action: Action, stop_event: asyncio.Event):
         while not stop_event.is_set():
             try:
-                await self.bot.methods.SendChatAction(self.chat_id, action)
+                await self.bot.SendChatAction(self.chat_id, action)
                 
             except Exception as e:
                 print(f"Error sending chat action: {e}")

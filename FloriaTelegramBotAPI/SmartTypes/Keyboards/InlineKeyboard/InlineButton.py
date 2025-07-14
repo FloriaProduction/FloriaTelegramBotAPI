@@ -1,5 +1,4 @@
-from typing import Optional, Union, Any, cast
-from pydantic import BaseModel
+from typing import Optional
 import json
 
 from .... import Utils, Types
@@ -7,7 +6,7 @@ from .... import Utils, Types
 
 def InlineButton(
     text: str,
-    callback_data: Optional[Union[BaseModel, dict[str, Any]]] = None,
+    callback_data: Optional[Types.JSON_TYPES] = None,
     copy_text: Optional[str] = None,
     url: Optional[str] = None,
     web_app: Optional[str] = None,
@@ -23,10 +22,7 @@ def InlineButton(
         callback_data=
         Utils.MapOptional(
             callback_data, 
-            lambda data: 
-                cast(BaseModel, data).model_dump_json() 
-                if issubclass(data.__class__, BaseModel) else 
-                json.dumps(data, separators=(',',':'))
+            lambda data: json.dumps(data, separators=(',',':'))
         ),
         url=url,
         web_app=Utils.MapOptional(web_app, lambda data: Types.WebAppInfo(url=data)),

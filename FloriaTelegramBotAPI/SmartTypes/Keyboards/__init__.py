@@ -1,2 +1,3 @@
 from .NewLine import NEWLINE, ENDL
-from . import Keyboard, InlineKeyboard
+from .Keyboard import Keyboard, RemoveKeyboard, Button
+from .InlineKeyboard import InlineKeyboard, InlineButton

@@ -1,5 +1,3 @@
-
-
 class Path:
     def __init__(self, path: str):
         self._path: str = path

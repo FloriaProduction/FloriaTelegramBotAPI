@@ -6,7 +6,7 @@ def readme():
 
 setup(
     name='FloriaTelegramBotAPI',
-    version='0.3.2',
+    version='0.3.2.1',
     author='FloriaProduction',
     author_email='FloriaProduction@yandex.ru',
     description='Python Telegram Bot API',
@@ -17,7 +17,7 @@ setup(
         "Source": 'https://github.com/FloriaProduction/FloriaTelegramBotAPI',
     },
     packages=find_packages(),
-    install_requires=['httpx', 'pydantic', 'schedule'],
+    install_requires=['httpx', 'pydantic', 'schedule', 'mmh3'],
     classifiers=[
         'Programming Language :: Python :: 3.12',
         'License :: OSI Approved :: Apache Software License',
