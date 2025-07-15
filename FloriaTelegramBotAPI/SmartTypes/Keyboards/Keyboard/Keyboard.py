@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, Union, cast
 
-from .... import Utils, Validator, Types
+from .... import Utils, Types
 
 from ..NewLine import NewLine
 
@@ -10,7 +10,7 @@ class RemoveKeyboard(Types.ReplyKeyboardRemove): pass
 class Keyboard:
     def __init__(
         self, 
-        *buttons: Types.KeyboardButton, 
+        *buttons: Optional[Union[Types.KeyboardButton, NewLine]], 
         
         is_persistent: Optional[bool] = None,
         resize: Optional[bool] = None,
@@ -26,16 +26,18 @@ class Keyboard:
     
         self.rows: list[list[Types.KeyboardButton]] = []
         
-        if buttons: self.Add(*Validator.List(buttons, Types.KeyboardButton))
+        if buttons: self.Add(*buttons)
     
-    def Add(self, *buttons: Types.KeyboardButton):
+    def Add(self, *buttons: Optional[Union[Types.KeyboardButton, NewLine]]):
         row: list[Types.KeyboardButton] = []
         for button in buttons:
-            if issubclass(button.__class__, NewLine):
+            if button is None:
+                continue
+            elif issubclass(button.__class__, NewLine):
                 self.rows.append([*row])
                 row.clear()
             else:
-                row.append(button)
+                row.append(cast(Types.KeyboardButton, button))
         if row:
             self.rows.append([*row])
     
