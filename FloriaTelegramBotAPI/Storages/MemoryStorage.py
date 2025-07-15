@@ -22,9 +22,11 @@ class MemoryStorage(Storage[TStorageValue], Generic[TStorageValue]):
     def Has(self, key: KEY_TYPES) -> bool:
         return key in self._memory
     
-    def __iter__(self) -> Iterator[KEY_TYPES]:
-        for key in [*self._memory.keys()]:
-            yield key
+    def Keys(self) -> Iterable[KEY_TYPES]:
+        return [*self._memory.keys()]
+    
+    def Values(self) -> Iterable[TStorageValue]:
+        return [*self._memory.values()]
     
     def Items(self) -> Iterable[tuple[KEY_TYPES, TStorageValue]]:
         return [*self._memory.items()]

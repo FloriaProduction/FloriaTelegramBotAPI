@@ -1,4 +1,4 @@
-from typing import Generic, Iterator, Optional, TypeVar, AsyncIterator
+from typing import Generic, Iterable, Iterator, Optional, TypeVar, AsyncIterator
 from abc import ABC, abstractmethod
 
 from ..Types import KEY_TYPES, PRIMITIVE_VALUES
@@ -19,15 +19,22 @@ class Storage(ABC, Generic[TStorageValue]):
     def Has(self, key: KEY_TYPES) -> bool: ...
     
     @abstractmethod
-    def __iter__(self) -> Iterator[KEY_TYPES]: ...
+    def __len__(self) -> int: ...
     
     @abstractmethod
-    def __len__(self) -> int: ...
-
-
+    def Keys(self) -> Iterable[KEY_TYPES]: ...
+    
+    @abstractmethod
+    def Values(self) -> Iterable[TStorageValue]: ...
+    
+    
 
     def __contains__(self, key: KEY_TYPES) -> bool:
         return self.Has(key)
+    
+    def __iter__(self) -> Iterator[KEY_TYPES]:
+        for key in self.Keys():
+            yield key
     
     def __getitem__(self, key: KEY_TYPES) -> TStorageValue:
         data = self.Get(key)
@@ -43,6 +50,9 @@ class Storage(ABC, Generic[TStorageValue]):
     
     def Count(self) -> int:
         return len(self)
+    
+    def Items(self) -> Iterable[tuple[KEY_TYPES, TStorageValue]]:
+        return zip(self.Keys(), self.Values())
 
 class StorageAsync(ABC, Generic[TStorageValue]):
     @abstractmethod
@@ -58,8 +68,19 @@ class StorageAsync(ABC, Generic[TStorageValue]):
     async def Has(self, key: KEY_TYPES) -> bool: ...
     
     @abstractmethod
-    async def __aiter__(self) -> AsyncIterator[KEY_TYPES]: ...
+    def Count(self) -> int: ...
     
     @abstractmethod
-    def Count(self) -> int: ...
-
+    def Keys(self) -> Iterable[KEY_TYPES]: ...
+    
+    @abstractmethod
+    def Values(self) -> Iterable[TStorageValue]: ...
+    
+    
+    
+    async def __aiter__(self) -> AsyncIterator[KEY_TYPES]:
+        for key in self.Keys():
+            yield key
+    
+    def Items(self) -> Iterable[tuple[KEY_TYPES, TStorageValue]]:
+        return zip(self.Keys(), self.Values())
