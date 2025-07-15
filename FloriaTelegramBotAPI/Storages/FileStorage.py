@@ -51,6 +51,3 @@ class FileStorage(MemoryStorage[TStorageValue], Generic[TStorageValue]):
                 indent=2 if indent else None
             )
         )
-    
-    def Set(self, key: KEY_TYPES, value: TStorageValue) -> KEY_TYPES:
-        return super().Set(key, value)

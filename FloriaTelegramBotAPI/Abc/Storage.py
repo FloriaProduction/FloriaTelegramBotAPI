@@ -20,6 +20,9 @@ class Storage(ABC, Generic[TStorageValue]):
     
     @abstractmethod
     def __iter__(self) -> Iterator[KEY_TYPES]: ...
+    
+    @abstractmethod
+    def __len__(self) -> int: ...
 
 
 
@@ -37,6 +40,9 @@ class Storage(ABC, Generic[TStorageValue]):
     
     def __delitem__(self, key: KEY_TYPES) -> Optional[TStorageValue]:
         return self.Pop(key)
+    
+    def Count(self) -> int:
+        return len(self)
 
 class StorageAsync(ABC, Generic[TStorageValue]):
     @abstractmethod
@@ -53,4 +59,7 @@ class StorageAsync(ABC, Generic[TStorageValue]):
     
     @abstractmethod
     async def __aiter__(self) -> AsyncIterator[KEY_TYPES]: ...
+    
+    @abstractmethod
+    def Count(self) -> int: ...
 

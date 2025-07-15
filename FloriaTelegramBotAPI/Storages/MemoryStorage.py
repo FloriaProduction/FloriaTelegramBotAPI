@@ -28,3 +28,6 @@ class MemoryStorage(Storage[TStorageValue], Generic[TStorageValue]):
     
     def Items(self) -> Iterable[tuple[KEY_TYPES, TStorageValue]]:
         return [*self._memory.items()]
+
+    def __len__(self) -> int:
+        return len(self._memory)
