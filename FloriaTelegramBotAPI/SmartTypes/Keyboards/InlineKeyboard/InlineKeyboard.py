@@ -15,30 +15,21 @@ class InlineKeyboard:
         if buttons: self.Add(*buttons)
     
     def Add(self, *buttons: Optional[Types.InlineKeyboardButton | NewLine]):
-        row: list[Types.InlineKeyboardButton] = []
         for button in buttons:
             if button is None:
                 continue
-            elif issubclass(button.__class__, NewLine):
-                self.rows.append([*row])
-                row.clear()
+            elif issubclass(button.__class__, NewLine) or isinstance(button, NewLine):
+                self.rows.append([])
             else:
-                row.append(cast(Types.InlineKeyboardButton, button))
-        if row:
-            self.rows.append([*row])
+                self.rows[-1].append(button)
     
     def As_Markup(self) -> Types.InlineKeyboardMarkup:
         return Types.InlineKeyboardMarkup(
-            **Utils.RemoveValues(
-                Utils.ToDict(
-                    inline_keyboard=[
-                        [
-                            button
-                            for button in row
-                        ]
-                        for row in self.rows
-                    ]
-                ),
-                None
-            )
+            inline_keyboard=[
+                [
+                    button
+                    for button in row
+                ]
+                for row in self.rows
+            ]
         )

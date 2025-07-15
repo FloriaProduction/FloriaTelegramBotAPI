@@ -1,6 +1,6 @@
 import json
 from typing import Union, Optional, Any, Callable, Type, get_args, get_origin, TypeVar, cast, Literal
-from types import UnionType
+from types import NoneType, UnionType
 from pydantic import BaseModel
 import inspect
 import os
@@ -68,40 +68,86 @@ class LazyObject:
     def Get(self):
         return self.func(*self.args, **self.kwargs)
 
-# TODO: Разобраться в функции, оптимизировать
+
 async def InvokeFunction(
-    func: Protocols.Functions.HandlerCallableAsync[...], 
+    func: Callable[..., Any], 
     *,
     passed_by_name: dict[str, Any] = {}, 
     passed_by_type: list[Any | LazyObject] = []
 ) -> Any:
-    # 1. Собираем доступные типы в словарь
-    type_candidates: dict[Type[Any], Any | LazyObject] = {
-        type(None): None
-    }
-    
-    for value in passed_by_type:
-        if value is None:
-            continue
+    def _IsOptionalType(annotation: Any) -> bool:
+        """Проверяет, содержит ли аннотация None или type(None)"""
+        if annotation is None or annotation is NoneType:
+            return True
             
-        if isinstance(value, LazyObject):
-            # Регистрируем основной тип и его origin (если есть)
-            type_candidates[value.type] = value
-            origin = get_origin(value.type)
-            if origin is not None:
-                type_candidates[origin] = value
-        else:
-            # Регистрируем конкретный тип и его origin
-            obj_type: Type[Any] = cast(Type[Any], type(value))
-            type_candidates[obj_type] = value
-            origin = get_origin(obj_type)
-            if origin is not None:
-                type_candidates[origin] = value
+        elif get_origin(annotation) is Union or isinstance(annotation, UnionType):
+            return any(
+                arg is None or arg is type(None) 
+                for arg in get_args(annotation)
+            )
+        
+        return False
 
+    def _CollectTypeCandidates(
+        passed_by_type: list[Any | LazyObject]
+    ) -> dict[Type[Any], Any | LazyObject]:
+        """Собирает словарь типов и их значений"""
+        candidates: dict[Type[Any], Any | LazyObject] = {NoneType: None}
+        
+        for value in passed_by_type:
+            if value is None:
+                continue
+                
+            if isinstance(value, LazyObject):
+                candidates[value.type] = value
+                origin = get_origin(value.type)
+                if origin is not None:
+                    candidates[origin] = value
+            else:
+                obj_type = cast(Type[Any], type(value))
+                candidates[obj_type] = value
+                origin = get_origin(obj_type)
+                if origin is not None:
+                    candidates[origin] = value
+                    
+        return candidates
+
+    def _ExpandAnnotationTypes(annotation: Any) -> set[Any]:
+        """Раскрывает сложные типы аннотаций в плоский набор типов"""
+        # Обработка Union и |
+        
+        types_set = set(get_args(annotation)) \
+            if get_origin(annotation) is Union or isinstance(annotation, UnionType) else \
+            {annotation}
+        
+        # Добавляем origin для каждого типа
+        expanded: set[Any] = set()
+        for type in types_set:
+            expanded.add(type)
+            origin = get_origin(type)
+            if origin is not None:
+                expanded.add(origin)
+                
+        return expanded
+
+    def _FindValueForType(
+        candidate_types: set[Any],
+        type_candidates: dict[Type[Any], Any | LazyObject]
+    ) -> Any:
+        """Ищет подходящее значение для набора типов"""
+        for type in candidate_types:
+            if type in type_candidates:
+                candidate = type_candidates[type]
+                return candidate.Get() if isinstance(candidate, LazyObject) else candidate
+        return None
+    
+    # Сбор доступных типов
+    type_candidates = _CollectTypeCandidates(passed_by_type)
     signature = inspect.signature(func)
     kwargs = passed_by_name.copy()
     errors: list[str] = []
     
+    # Обработка параметров функции
     for param_name, param in signature.parameters.items():
         if param_name in kwargs:
             continue
@@ -111,41 +157,35 @@ async def InvokeFunction(
             
         ann = param.annotation
         if ann is param.empty:
-            errors.append(f"'{param_name}' is missing type annotation")
+            errors.append(f"Parameter '{param_name}' lacks type annotation")
             continue
-            
-        candidate_types: set[Any] = set()
         
-        if get_origin(ann) is Union or isinstance(ann, UnionType):
-            candidate_types.update(get_args(ann))
-        else:
-            candidate_types.add(ann)
+        # Поиск значения
+        value = _FindValueForType(
+            _ExpandAnnotationTypes(ann), 
+            type_candidates
+        )
         
-        additional_types: set[Any] = set()
-        for t in candidate_types:
-            origin = get_origin(t)
-            if origin is not None:
-                additional_types.add(origin)
-        candidate_types.update(additional_types)
-        
-        value = None
-        for t in candidate_types:
-            if t in type_candidates:
-                candidate = type_candidates[t]
-                value = candidate.Get() if isinstance(candidate, LazyObject) else candidate
-                break
-        
+        # Обработка результатов
         if value is not None:
             kwargs[param_name] = value
-        elif param.default is param.empty:
-            type_names = [t.__name__ for t in candidate_types]
-            errors.append(f"{param_name}: {' | '.join(type_names)}")
+        else:
+            if param.default is not param.empty:
+                continue  # Используем значение по умолчанию
+            elif _IsOptionalType(ann):
+                kwargs[param_name] = None  # Для Optional подставляем None
+            else:
+                # Формирование сообщения об ошибке
+                base_types = get_args(ann) if get_origin(ann) is Union else {ann}
+                type_names = [t.__name__ for t in base_types if t not in (None, type(None))]
+                errors.append(f"{param_name}: {' | '.join(type_names)}")
     
+    # Обработка ошибок
     if errors:
         available_types = ', '.join(t.__name__ for t in type_candidates)
         error_msg = "\n  - ".join(errors)
         raise RuntimeError(
-            f"Missing required arguments:\n  - {error_msg}\n"
+            f"Failed to resolve arguments for function '{func.__name__}':\n  - {error_msg}\n"
             f"Available types: {available_types}"
         )
     
